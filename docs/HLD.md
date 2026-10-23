@@ -69,9 +69,9 @@ Step Functions runs nine steps and decides who works next. Each agent decides ho
 | Agent | Job | Tools | Model | Checks outside the model |
 | --- | --- | --- | --- | --- |
 | RFP Analyst | Extracts atomic requirements from each section | get_section, scan_modal_verbs | Nova Pro | Each quote must match the source word for word. Scan hits that no requirement covers become "possible misses". |
-| Compliance Analyst | Searches the evidence, judges each requirement's status, cites passages | search_evidence (hybrid, filtered by category), get_passage | Nova Pro | At most 3 searches per requirement; cited passages must exist |
+| Compliance Analyst | Starts from the top 3 passages per requirement (first-pass hybrid search in code), searches again where they don't settle it, judges each status, cites passages | search_evidence (hybrid, filtered by category), get_passage | Nova Pro | At most 2 extra searches per requirement; cited passages must have been retrieved |
 | Proposal Writer | Drafts each section in RFP order with [E#] citations, with SME placeholders where a fact is unknown | get_matrix, get_evidence | Nova Pro | Output schema checked |
-| Claim Verifier | Splits the draft into claims and checks each against its evidence | split_claims, check_grounding (Guardrails) | Nova Lite | Runs independently of the drafting prompt; at most 2 rewrite rounds |
+| Claim Verifier | Judges each atomic claim against its cited evidence, using Guardrails grounding scores computed in parallel beforehand | check_grounding (Guardrails) | Nova Lite | Runs independently of the drafting prompt; a supported verdict below 0.3 grounding is overridden; at most 2 rewrite rounds |
 | Bid Strategist | Applies the knock-outs, scores the bid, writes the rationale | get_bid_policy, compute_score, list_gaps | Nova Pro | The score is computed in code, not by the model |
 
 Every agent has a token budget and a cap on tool calls. Hitting either stops the run with a clear status. Time to first draft excludes the confirm checkpoint, so it measures machine time only.
