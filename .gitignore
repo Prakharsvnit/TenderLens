@@ -21,7 +21,7 @@ cdk.context.json
 data/rfps/*.pdf
 data/rfps/*.txt
 runs/
-evals/reports/*.json
+evals/reports/
 .env
 .env.*
 
