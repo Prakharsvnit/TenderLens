@@ -139,7 +139,7 @@ export function Tabs<T extends string>({
   onChange: (id: T) => void
 }) {
   return (
-    <div className="flex gap-1 overflow-x-auto border-b border-slate-200">
+    <div className="flex gap-1 overflow-x-auto overflow-y-hidden border-b border-slate-200">
       {tabs.map((tab) => (
         <button
           key={tab.id}

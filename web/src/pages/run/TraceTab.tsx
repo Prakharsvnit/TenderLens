@@ -15,6 +15,7 @@ const AGENTS: Record<string, string> = {
 const KIND_STYLE: Record<string, string> = {
   model_call: 'bg-brand-50 text-brand-700 ring-brand-600/20',
   tool_call: 'bg-sky-50 text-sky-700 ring-sky-600/20',
+  guardrail: 'bg-emerald-50 text-emerald-700 ring-emerald-600/20',
   validation: 'bg-amber-50 text-amber-700 ring-amber-600/20',
   error: 'bg-rose-50 text-rose-700 ring-rose-600/20',
 }

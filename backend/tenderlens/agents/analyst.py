@@ -103,7 +103,7 @@ def _analyst_stub(rfp: RFP, batch: list, criteria: list[EvaluationCriterion]):
 def _criteria_stub(messages, tool_names):
     found = []
     for line in human_text(messages).splitlines():
-        match = re.match(r"^\s*([A-Z][A-Za-z&/,()' \-]{5,80}?)\s+(\d{1,3})\s*$", line)
+        match = re.match(r"^\s*([A-Z][A-Za-z0-9&/,()' \-]{5,80}?)\s+(\d{1,3})\s*$", line)
         if match and "total" not in match.group(1).lower():
             found.append({"name": match.group(1).strip(), "points": float(match.group(2))})
     return AIMessage("", tool_calls=[_call(response_tool(CriteriaOutput, tool_names), {"criteria": found})])

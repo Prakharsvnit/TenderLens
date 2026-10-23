@@ -46,7 +46,7 @@ def verify(
             scores[claim.id] = (result.grounding, source)
             tracer.add(
                 "claim_verifier",
-                "tool_call",
+                "guardrail",
                 name=f"guardrails:{result.source}",
                 detail=f"{claim.id} grounding={result.grounding:.2f} relevance={result.relevance:.2f}",
             )

@@ -104,11 +104,25 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main() -> None:
+    import argparse
+
+    parser = argparse.ArgumentParser(description="TenderLens local API")
+    parser.add_argument("--stub", action="store_true", help="use scripted offline agents instead of Bedrock")
+    if parser.parse_args().stub:
+        os.environ["TL_LLM_MODE"] = "stub"
+    os.environ.setdefault("TL_STORE", "local")
     server = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
+    mode = os.environ.get("TL_LLM_MODE", "bedrock")
     print(
         json.dumps(
-            {"api": f"http://localhost:{PORT}", "user": USER, "store": str(get_store().__class__.__name__)}
-        )
+            {
+                "api": f"http://localhost:{PORT}",
+                "user": USER,
+                "llm": mode,
+                "store": get_store().__class__.__name__,
+            }
+        ),
+        flush=True,
     )
     server.serve_forever()
 

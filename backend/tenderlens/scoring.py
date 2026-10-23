@@ -103,7 +103,7 @@ def decide(
                 requirement_id=anchor.id,
                 description=rule.description,
                 outcome=outcome,
-                evidence_ids=[e for r in matched for e in evidence.get(r.id, [])][:5],
+                evidence_ids=list(dict.fromkeys(e for r in matched for e in evidence.get(r.id, [])))[:5],
                 fix=fix,
             )
         )
