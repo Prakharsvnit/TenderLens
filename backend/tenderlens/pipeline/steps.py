@@ -19,6 +19,7 @@ from ..ontology.models import (
     Category,
     ClaimVerdictLabel,
     ClaimVerdicts,
+    Decision,
     DraftMessage,
     RequirementSet,
     RequirementStatus,
@@ -185,6 +186,8 @@ def record_confirmation(run_id: str, actor: str, edits: list[dict] | None = None
 # 4. Assess (Map) ---------------------------------------------------------------------------------
 def plan_assess(event: dict) -> dict:
     run_id, store = event["run_id"], get_store()
+    if store.get_run(run_id).get("status") == "awaiting_confirmation":  # checkpoint timed out
+        record_confirmation(run_id, "auto-continue (timeout)")
     reqs = store.get_message(run_id, RequirementSet)
     size = get_settings().assess_batch_size
     ids = [r.id for r in reqs.requirements]
@@ -331,6 +334,12 @@ def record_approval(run_id: str, approval: Approval) -> None:
 # 9. Publish ---------------------------------------------------------------------------------------
 def publish(event: dict) -> dict:
     run_id, store = event["run_id"], get_store()
+    run = store.get_run(run_id)
+    if not run.get("approved_by"):  # approval checkpoint timed out: record the computed decision
+        record_approval(
+            run_id,
+            Approval(approver="auto (timeout)", accepted=True, final_decision=Decision(run["decision"])),
+        )
     with _Step(run_id, "publish"):
         reqs = store.get_message(run_id, RequirementSet)
         assessed = store.get_message(run_id, AssessmentBatch)

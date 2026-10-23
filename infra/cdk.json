@@ -1,0 +1,9 @@
+{
+  "app": "uv run python app.py",
+  "context": {
+    "confirmTimeoutSeconds": 120,
+    "dailyRunCap": 3,
+    "@aws-cdk/aws-lambda:recognizeLayerVersion": true,
+    "@aws-cdk/core:checkSecretUsage": true
+  }
+}

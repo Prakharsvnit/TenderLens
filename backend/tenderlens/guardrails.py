@@ -46,10 +46,14 @@ def screen_text(text: str) -> ScreenResult:
             source="INPUT",
             content=[{"text": {"text": text[:20000]}}],
         )
-        flagged = response.get("action") == "GUARDRAIL_INTERVENED"
-        return ScreenResult(
-            flagged, "guardrails", str(response.get("assessments", ""))[:300] if flagged else ""
-        )
+        attacks = [
+            f
+            for a in response.get("assessments", [])
+            for f in a.get("contentPolicy", {}).get("filters", [])
+            if f.get("type") == "PROMPT_ATTACK" and f.get("detected", f.get("action") == "BLOCKED")
+        ]
+        detail = f"prompt attack, confidence {attacks[0].get('confidence', '?')}" if attacks else ""
+        return ScreenResult(bool(attacks), "guardrails", detail)
     match = _INJECTION.search(text)
     return ScreenResult(bool(match), "pattern", match.group(0) if match else "")
 

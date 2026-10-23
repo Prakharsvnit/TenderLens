@@ -11,7 +11,7 @@ dependencies = [
     "langchain>=1.0",
     "langchain-aws>=1.0",
     "langgraph>=1.0",
-    "aws-lambda-powertools>=3.0",
+    "aws-lambda-powertools[tracer]>=3.0",
     "openpyxl>=3.1",
     "python-docx>=1.1",
 ]
