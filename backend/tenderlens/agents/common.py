@@ -75,11 +75,22 @@ def run_agent(
         name=name,
     )
     with tracer.agent(name, detail=f"{len(prompt):,} chars in"):
-        result = agent.invoke({"messages": [HumanMessage(prompt)]}, config={"recursion_limit": 80})
-        tracer.record_messages(name, result["messages"])
-        structured = result.get("structured_response") or _parse_fallback(result["messages"], schema)
-        if structured is None:
-            tracer.add(name, "validation", name="schema", detail="no structured response")
+        messages: list[BaseMessage] = [HumanMessage(prompt)]
+        for attempt in range(2):
+            result = agent.invoke({"messages": messages}, config={"recursion_limit": 80})
+            tracer.record_messages(name, result["messages"][len(messages) - 1 :])
+            structured = result.get("structured_response") or _parse_fallback(result["messages"], schema)
+            if structured is not None:
+                break
+            tracer.add(
+                name, "validation", name="schema", detail=f"no {schema.__name__} (attempt {attempt + 1})"
+            )
+            # One nudge: models sometimes answer in prose instead of calling the response tool.
+            messages = [
+                *result["messages"],
+                HumanMessage(f"Now return your final answer by calling the {schema.__name__} tool."),
+            ]
+        else:
             raise AgentFailed(f"{name} returned no {schema.__name__}")
         tracer.add(name, "validation", name="schema", detail=f"{schema.__name__} ok")
     return structured

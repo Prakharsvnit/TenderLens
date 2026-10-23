@@ -8,6 +8,8 @@ typed message here and the orchestrator passes the next agent its key.
 from __future__ import annotations
 
 import json
+import os
+import threading
 from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
@@ -87,15 +89,19 @@ class Store:
 class LocalStore(Store):
     def __init__(self, root: Path):
         self.root = root
+        self._lock = threading.RLock()
         root.mkdir(parents=True, exist_ok=True)
 
     def _path(self, key: str) -> Path:
         return self.root / key.removeprefix("runs/")
 
     def put_bytes(self, key: str, data: bytes) -> None:
+        # Write then rename, so a reader on another thread never sees a half-written file.
         path = self._path(key)
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(data)
+        tmp = path.with_name(f".{path.name}.{threading.get_ident()}.tmp")
+        tmp.write_bytes(data)
+        os.replace(tmp, path)
 
     def get_bytes(self, key: str) -> bytes:
         return self._path(key).read_bytes()
@@ -105,10 +111,15 @@ class LocalStore(Store):
 
     def update_run(self, run_id: str, **fields: Any) -> dict:
         key = f"runs/{run_id}/run.json"
-        run = self.get_json(key) if self.exists(key) else {"run_id": run_id, "created_at": _now()}
-        run.update(fields, updated_at=_now())
-        self.put_json(key, run)
+        with self._lock:  # the API and the orchestrator thread both update runs
+            run = self.get_json(key) if self.exists(key) else {"run_id": run_id, "created_at": _now()}
+            run.update(fields, updated_at=_now())
+            self.put_json(key, run)
         return run
+
+    def append_audit(self, run_id: str, actor: str, action: str, detail: dict) -> None:
+        with self._lock:
+            super().append_audit(run_id, actor, action, detail)
 
     def get_run(self, run_id: str) -> dict:
         return self.get_json(f"runs/{run_id}/run.json")
@@ -123,9 +134,8 @@ class LocalStore(Store):
             return
         path = self._path(f"runs/{events[0].run_id}/trace.jsonl")
         path.parent.mkdir(parents=True, exist_ok=True)
-        with path.open("a", encoding="utf-8") as fh:
-            for event in events:
-                fh.write(event.model_dump_json() + "\n")
+        with self._lock, path.open("a", encoding="utf-8") as fh:
+            fh.write("".join(event.model_dump_json() + "\n" for event in events))
 
     def get_trace(self, run_id: str) -> list[dict]:
         path = self._path(f"runs/{run_id}/trace.jsonl")
@@ -133,8 +143,9 @@ class LocalStore(Store):
 
     def increment_quota(self, day: str) -> int:
         key = f"runs/_quota/{day}.json"
-        count = (self.get_json(key)["count"] if self.exists(key) else 0) + 1
-        self.put_json(key, {"count": count})
+        with self._lock:
+            count = (self.get_json(key)["count"] if self.exists(key) else 0) + 1
+            self.put_json(key, {"count": count})
         return count
 
 

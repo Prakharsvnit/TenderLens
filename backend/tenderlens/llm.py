@@ -69,9 +69,12 @@ def get_chat_model(kind: str, stub: StubScript | None = None) -> BaseChatModel:
         return StubChatModel(script=stub, model_id=f"stub-{kind}")
     from langchain_aws import ChatBedrockConverse
 
+    # Nova calls tools most reliably with greedy decoding (temperature 0, topK 1), and a structured answer can be
+    # long, so the output limit is generous: an answer cut off mid tool call fails the whole step.
     return ChatBedrockConverse(
         model_id=model_id,
         client=bedrock_runtime(),
-        temperature=0.1,
-        max_tokens=4096 if kind == "pro" else 2048,
+        temperature=0.0,
+        max_tokens=8000 if kind == "pro" else 4000,
+        additional_model_request_fields={"inferenceConfig": {"topK": 1}},
     )

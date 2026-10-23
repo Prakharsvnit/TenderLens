@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Install
+        run: uv sync --python 3.12
+      - name: Lint
+        run: uv run ruff check tenderlens tests && uv run ruff format --check tenderlens tests
+      - name: Fetch demo RFPs
+        run: python ../scripts/fetch_rfps.py
+      - name: Tests (offline stub models, no AWS)
+        run: uv run pytest -q
+        env:
+          TL_LLM_MODE: stub
+
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+  infra:
+    runs-on: ubuntu-latest
+    needs: [backend, web]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build web app
+        run: pnpm --dir web install --frozen-lockfile && pnpm --dir web build
+      - name: CDK synth (bundles the Lambda layer in Docker)
+        working-directory: infra
+        run: uv sync --python 3.12 && npx --yes aws-cdk@2 synth --quiet
