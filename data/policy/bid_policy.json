@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "bidder_id": "cobalt-harbor",
+  "knock_outs": [
+    {
+      "id": "KO-MEETING",
+      "description": "Attendance at a mandatory pre-bid meeting or site walkthrough",
+      "match_terms": ["walk-through", "walkthrough", "pre-bid meeting", "pre-bid conference", "mandatory meeting"],
+      "fixable_by": null
+    },
+    {
+      "id": "KO-DEBARMENT",
+      "description": "Not suspended or debarred from public contracts",
+      "match_terms": ["debarment", "debarred", "sam.gov"],
+      "fixable_by": null
+    },
+    {
+      "id": "KO-SECURITY",
+      "description": "Mandatory security compliance or certification, such as CJIS",
+      "match_terms": ["cjis", "criminal justice information"],
+      "fixable_by": "teaming_partner"
+    },
+    {
+      "id": "KO-INSURANCE",
+      "description": "Minimum insurance limits",
+      "match_terms": ["insurance", "per occurrence", "liability coverage"],
+      "fixable_by": "remediation"
+    },
+    {
+      "id": "KO-LICENSE",
+      "description": "Licensed or registered to do business in the buyer's jurisdiction",
+      "match_terms": ["business license", "licensed to do business", "registered to do business"],
+      "fixable_by": "remediation"
+    }
+  ],
+  "status_credit": {"met": 1.0, "partial": 0.5, "not_met": 0.0, "no_evidence": 0.5},
+  "bid_threshold": 0.70,
+  "conditional_threshold": 0.55
+}

@@ -1,0 +1,129 @@
+# Hand-labelled gold set for the City of Belle Isle RFP 2026-04 (IT Services).
+# quote: a verbatim span of the RFP (whitespace-insensitive) used to match extracted requirements.
+# expected_status: acceptable statuses against the fictional bidder Cobalt Harbor; null = a submission
+# step the bid team performs, not scored for status accuracy.
+
+rfp: belle-isle-rfp-2026-04
+bidder: cobalt-harbor
+
+evaluation_criteria:
+  - {name: Experience in Public Sector Support, points: 10}
+  - {name: Understanding of Required Services, points: 10}
+  - {name: Personnel Experience & Qualifications, points: 10}
+  - {name: CJIS Level 4 Certification, points: 10}
+  - {name: Cybersecurity Framework Compliance, points: 10}
+  - {name: Geographic Proximity & On-Site Support, points: 5}
+  - {name: Project Approach & Methodology, points: 5}
+  - {name: Client & End-User Satisfaction, points: 5}
+  - {name: Proposal Presentation & Clarity, points: 5}
+  - {name: Cost Proposal / Value, points: 5}
+
+expected_decision: bid_with_conditions
+
+requirements:
+  - {id: G01, page: 3, category: submission, obligation: mandatory, critical: true, expected_status: [met],
+     quote: "Attendance at the walk-through is mandatory to qualify to bid on the project"}
+  - {id: G02, page: 4, category: submission, obligation: mandatory, critical: true, expected_status: null,
+     quote: "PROPOSALS RECEIVED AFTER A SPECIFIED DATE AND TIME WILL NOT BE ACCEPTED"}
+  - {id: G03, page: 1, category: submission, obligation: mandatory, critical: true, expected_status: null,
+     quote: "No faxed or emailed Bids will be considered"}
+  - {id: G04, page: 4, category: submission, obligation: mandatory, critical: false, expected_status: null,
+     quote: "One (1) original and one (1) digital (flash drive) version in PDF format"}
+  - {id: G05, page: 10, category: submission, obligation: desirable, critical: false, expected_status: null,
+     quote: "each Proposal be brief, to the point, and no more than 10 pages"}
+  - {id: G06, page: 2, category: security_compliance, obligation: mandatory, critical: true, criterion: CJIS Level 4 Certification,
+     expected_status: [not_met], quote: "All Respondents must be familiar with and able to meet the security requirements outlined by the CJIS Security Policy"}
+  - {id: G07, page: 2, category: security_compliance, obligation: desirable, critical: false, criterion: Experience in Public Sector Support,
+     expected_status: [partial, not_met], quote: "Respondents should demonstrate prior experience supporting law enforcement agencies"}
+  - {id: G08, page: 2, category: service_levels, obligation: mandatory, critical: false, criterion: Understanding of Required Services,
+     expected_status: [met], quote: "including 24/7 monitoring Services, security Services, maintenance of hardware"}
+  - {id: G09, page: 2, category: technical, obligation: mandatory, critical: false, criterion: Understanding of Required Services,
+     expected_status: [met], quote: "as well as backup and disaster recovery Services through a mix of remote and onsite efforts"}
+  - {id: G10, page: 2, category: service_levels, obligation: mandatory, critical: false, criterion: Client & End-User Satisfaction,
+     expected_status: [met], quote: "high-quality help desk support that recognizes the varying levels of technical aptitude among City staff"}
+  - {id: G11, page: 2, category: commercial, obligation: mandatory, critical: false,
+     expected_status: [met], quote: "The Contractor shall not purchase or order any hardware, software, licensing, or subscription Services on behalf of the City without prior written authorization"}
+  - {id: G12, page: 3, category: technical, obligation: mandatory, critical: false, criterion: Understanding of Required Services,
+     expected_status: [met], quote: "the company must be the single point of contact for all staff and external vendors for all IT-related issues"}
+  - {id: G13, page: 5, category: technical, obligation: mandatory, critical: false,
+     expected_status: [met, partial], quote: "required to interface with the application-specific vendors, specifically the Orange County Sheriff's Office"}
+  - {id: G14, page: 5, category: service_levels, obligation: mandatory, critical: false, criterion: Understanding of Required Services,
+     expected_status: [met], quote: "24x7 service desk and operations monitoring"}
+  - {id: G15, page: 5, category: commercial, obligation: mandatory, critical: false,
+     expected_status: [met], quote: "The Contractor shall not bundle, resell, or retain ownership of any licenses or equipment on behalf of the City"}
+  - {id: G16, page: 6, category: technical, obligation: mandatory, critical: false,
+     expected_status: [met], quote: "The City shall be the named tenant owner and Global Administrator"}
+  - {id: G17, page: 6, category: technical, obligation: mandatory, critical: false, criterion: Project Approach & Methodology,
+     expected_status: [met], quote: "The Contractor shall provide a detailed written report within forty-five (45) days of contract commencement and annually thereafter"}
+  - {id: G18, page: 7, category: technical, obligation: mandatory, critical: false,
+     expected_status: [met], quote: "Update and maintain an inventory of all computer-related hardware and software"}
+  - {id: G19, page: 7, category: technical, obligation: mandatory, critical: false, criterion: Understanding of Required Services,
+     expected_status: [met], quote: "Maintenance and support of network equipment are required, including site-to-site wireless"}
+  - {id: G20, page: 7, category: technical, obligation: mandatory, critical: false,
+     expected_status: [met], quote: "the Contractor will need cloud experience/capability"}
+  - {id: G21, page: 7, category: technical, obligation: mandatory, critical: false,
+     expected_status: [met], quote: "Secure, encrypted email, email archiving, and SPAM protection Services are required"}
+  - {id: G22, page: 8, category: security_compliance, obligation: mandatory, critical: false,
+     expected_status: [met], quote: "ensure that all City servers, desktops, and laptops are protected by antivirus software"}
+  - {id: G23, page: 8, category: security_compliance, obligation: mandatory, critical: true, criterion: Cybersecurity Framework Compliance,
+     expected_status: [partial, not_met], quote: "The Contractor will maintain compliance with the CJIS and NIST 800-53 security frameworks"}
+  - {id: G24, page: 8, category: security_compliance, obligation: mandatory, critical: true, criterion: CJIS Level 4 Certification,
+     expected_status: [not_met], quote: "CJIS Level 4 Certification for their systems and for technicians accessing City of Belle Isle systems"}
+  - {id: G25, page: 8, category: technical, obligation: mandatory, critical: false, criterion: Personnel Experience & Qualifications,
+     expected_status: [not_met], quote: "Experience with the Microsoft 365 GCC High-security platform is required"}
+  - {id: G26, page: 8, category: security_compliance, obligation: mandatory, critical: false,
+     expected_status: [met], quote: "annual security training, or more frequently as appropriate, covering email phishing and ransomware protection"}
+  - {id: G27, page: 8, category: security_compliance, obligation: mandatory, critical: false, criterion: Cybersecurity Framework Compliance,
+     expected_status: [met], quote: "The Contractor will provide yearly penetration testing and risk assessment"}
+  - {id: G28, page: 8, category: security_compliance, obligation: mandatory, critical: false, criterion: Cybersecurity Framework Compliance,
+     expected_status: [partial, met], quote: "Data Loss Prevention and Intrusion Detection will be managed with a SIEM/SOAR capability"}
+  - {id: G29, page: 8, category: technical, obligation: mandatory, critical: false, criterion: Project Approach & Methodology,
+     expected_status: [met], quote: "Make recommendations for future hardware, software, and technology purchases"}
+  - {id: G30, page: 8, category: commercial, obligation: mandatory, critical: false,
+     expected_status: [met], quote: "The Contractor will assist in preparing a 1-year departmental budget"}
+  - {id: G31, page: 8, category: service_levels, obligation: mandatory, critical: false,
+     expected_status: [met], quote: "The Contractor will be expected to perform maintenance services after hours and on weekends"}
+  - {id: G32, page: 8, category: service_levels, obligation: mandatory, critical: false, criterion: Understanding of Required Services,
+     expected_status: [met], quote: "The Contractor shall provide a maximum of two (2) hours response time for emergency service requests"}
+  - {id: G33, page: 8, category: service_levels, obligation: mandatory, critical: false,
+     expected_status: [met], quote: "demonstrate their NOC's capabilities and provide the Contractor's SLA and escalation matrix"}
+  - {id: G34, page: 9, category: security_compliance, obligation: mandatory, critical: false,
+     expected_status: [met], quote: "The Contractor must permit the City to conduct criminal background investigations of the Contractor's employees"}
+  - {id: G35, page: 9, category: insurance_legal, obligation: mandatory, critical: false,
+     expected_status: [met], quote: "will be required to sign and adhere to a confidentiality clause"}
+  - {id: G36, page: 9, category: service_levels, obligation: mandatory, critical: false, criterion: Geographic Proximity & On-Site Support,
+     expected_status: [partial], quote: "the Contractor will be expected to conduct onsite visits for routine preventative maintenance"}
+  - {id: G37, page: 10, category: submission, obligation: mandatory, critical: false, expected_status: null,
+     quote: "required to be specific about disclosing any part of the Proposal that will be carried out by any other parties"}
+  - {id: G38, page: 10, category: submission, obligation: mandatory, critical: false, expected_status: [met, no_evidence],
+     quote: "valid and binding for one hundred eighty (180) days following the Proposal due date"}
+  - {id: G39, page: 10, category: staffing, obligation: mandatory, critical: false, criterion: Personnel Experience & Qualifications,
+     expected_status: [met], quote: "A skills matrix for the employee(s) servicing this account"}
+  - {id: G40, page: 10, category: staffing, obligation: mandatory, critical: false, criterion: Experience in Public Sector Support,
+     expected_status: [met], quote: "at least three references of clients who have received similar Services from the proposer"}
+  - {id: G41, page: 11, category: insurance_legal, obligation: mandatory, critical: false,
+     expected_status: [met], quote: "Explanation of any contract termination, default, or other incidents in the past five years"}
+  - {id: G42, page: 11, category: commercial, obligation: mandatory, critical: false, criterion: Cost Proposal / Value,
+     expected_status: [met], quote: "a fee schedule that includes hourly rates for proposed on-demand calls with a fixed monthly rate"}
+  - {id: G43, page: 11, category: commercial, obligation: mandatory, critical: false,
+     expected_status: [met], quote: "Define any additional charges (e.g., travel expense, licenses, subscription"}
+  - {id: G44, page: 11, category: service_levels, obligation: desirable, critical: false,
+     expected_status: [met], quote: "Do you provide a toll-free phone number to access support help"}
+  - {id: G45, page: 13, category: insurance_legal, obligation: mandatory, critical: false,
+     expected_status: [met], quote: "A proposer awarded the contract will be required to obtain the City's business license"}
+  - {id: G46, page: 13, category: submission, obligation: mandatory, critical: false, expected_status: null,
+     quote: "Attachment #1: Public Entity Crimes and Conflicts of Interest Form"}
+  - {id: G47, page: 14, category: insurance_legal, obligation: mandatory, critical: true,
+     expected_status: [met], quote: "the Contractor may not participate in this solicitation if the Contractor is listed in the federal suspension or debarment system"}
+  - {id: G48, page: 16, category: insurance_legal, obligation: mandatory, critical: false,
+     expected_status: [no_evidence, partial], quote: "the Contractor shall comply with all applicable federal procurement requirements"}
+  - {id: G49, page: 16, category: insurance_legal, obligation: mandatory, critical: false,
+     expected_status: [met, partial], quote: "maintain all records sufficient to substantiate charges to federal awards for a minimum of five (5) years"}
+  - {id: G50, page: 17, category: insurance_legal, obligation: mandatory, critical: true,
+     expected_status: [met], quote: "The amount of insurance shall not be less than $1,000,000 per occurrence and aggregate"}
+  - {id: G51, page: 17, category: insurance_legal, obligation: mandatory, critical: true,
+     expected_status: [not_met], quote: "the Contractor shall maintain Cyber Liability and Network Security Insurance"}
+  - {id: G52, page: 17, category: insurance_legal, obligation: mandatory, critical: false,
+     expected_status: [met], quote: "Proof of coverage shall be provided to the City prior to contract execution"}
+  - {id: G53, page: 18, category: submission, obligation: mandatory, critical: true, expected_status: null,
+     quote: "Any Vendor contacting individuals mentioned herein in violation of this warning may automatically be disqualified"}
