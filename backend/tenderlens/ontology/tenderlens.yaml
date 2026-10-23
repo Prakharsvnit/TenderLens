@@ -1,0 +1,72 @@
+# TenderLens domain ontology, v1.
+# The single source of truth for the vocabulary agents, tools, the search index and the database share.
+# tests/test_ontology.py keeps the Pydantic models in tenderlens/ontology/models.py in sync with this file.
+
+version: 1
+namespace: urn:tenderlens:ontology:v1
+
+# SKOS-style concept scheme used to classify requirements and tag capability documents.
+categories:
+  technical:
+    label: Technical services
+    definition: Infrastructure, networks, endpoints, applications, monitoring, backup and the IT work itself.
+  security_compliance:
+    label: Security and compliance
+    definition: Security frameworks, certifications, CJIS, NIST, audits, background checks and data protection.
+  staffing:
+    label: Staffing and personnel
+    definition: Named staff, qualifications, experience, on-site presence and key personnel.
+  service_levels:
+    label: Service levels
+    definition: Availability, response and resolution times, support hours, help desk and reporting.
+  insurance_legal:
+    label: Insurance and legal
+    definition: Insurance limits, indemnification, licences, statutory compliance and contract terms.
+  commercial:
+    label: Commercial and pricing
+    definition: Pricing, cost proposals, payment terms and value.
+  submission:
+    label: Submission and process
+    definition: Deadlines, mandatory meetings, required forms, format, copies and proposal validity.
+
+enums:
+  Obligation: [mandatory, desirable]
+  RequirementStatus: [met, partial, not_met, no_evidence]
+  ClaimVerdictLabel: [supported, unsupported, contradicted]
+  Decision: [bid, bid_with_conditions, no_bid]
+  Severity: [critical, high, medium, low]
+  MitigationType: [teaming_partner, clarification_question, exception, remediation]
+  KnockOutOutcome: [met, fixable, fatal]
+
+classes:
+  Buyer: The public body or company that issues the RFP.
+  RFP: A request for proposal, with its deadline, format rules and sections.
+  Section: A part of the RFP, with a heading and page range.
+  Requirement: One atomic obligation stated in a section, quoted word for word.
+  Claim: One factual sentence in the draft response.
+  Bidder: The company responding to the RFP.
+  CapabilityDocument: A document the bidder publishes about itself.
+  Evidence: A passage from a capability document, with its location and search score.
+  Capability: Something the bidder can do or holds, such as a service, certification or skill.
+  Gap: A requirement the bidder cannot fully meet.
+  Mitigation: A way to close a gap.
+  BidDecision: The bid, no-bid or conditional recommendation with its score.
+  BidPolicy: The bidder's knock-out rules, weights and thresholds.
+  Approval: A person's sign-off or override of a bid decision.
+
+# Relations: subject --predicate--> object. Every subject and object must be a class above.
+relations:
+  - [Buyer, issues, RFP]
+  - [RFP, contains, Section]
+  - [Section, states, Requirement]
+  - [Requirement, satisfiedBy, Capability]
+  - [Requirement, raises, Gap]
+  - [Gap, mitigatedBy, Mitigation]
+  - [Claim, answers, Requirement]
+  - [Claim, cites, Evidence]
+  - [Bidder, publishes, CapabilityDocument]
+  - [CapabilityDocument, contains, Evidence]
+  - [Evidence, proves, Capability]
+  - [Gap, feeds, BidDecision]
+  - [BidDecision, mustObey, BidPolicy]
+  - [BidDecision, signedOffIn, Approval]
