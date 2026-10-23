@@ -30,3 +30,4 @@ evals/reports/*.json
 Thumbs.db
 .vscode/
 .idea/
+data/library/index.json
