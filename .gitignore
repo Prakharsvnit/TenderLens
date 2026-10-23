@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+dist/
+build/
+
+# Node
+node_modules/
+web/dist/
+
+# CDK
+infra/cdk.out/
+cdk.context.json
+
+# Local data and run outputs
+data/rfps/*.pdf
+data/rfps/*.txt
+runs/
+evals/reports/*.json
+.env
+.env.*
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
