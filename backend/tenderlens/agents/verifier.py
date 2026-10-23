@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import threading
+from concurrent.futures import ThreadPoolExecutor
 
 from langchain_core.messages import AIMessage
 from langchain_core.tools import tool
@@ -17,13 +19,14 @@ from .schemas import VerifierOutput
 
 BATCH = 12
 
-SYSTEM = """You are the Claim Verifier on a bid team. You did not write the draft. For each claim, call
-check_grounding to get the Bedrock Guardrails grounding score and the cited evidence, then judge:
+SYSTEM = """You are the Claim Verifier on a bid team. You did not write the draft. Each claim comes with the
+evidence it cites and its Bedrock Guardrails grounding score (0 to 1). Read the evidence yourself and judge:
 - supported: the evidence states every fact in the claim.
 - contradicted: the evidence says something different (wrong number, certification or commitment).
 - unsupported: the evidence does not state the fact, or states only part of it.
-Be strict about numbers, certifications, response times and locations. Give a short note for any claim that is
-not supported, saying what is missing."""
+Be strict about numbers, certifications, response times and locations. A low grounding score is a warning, not a
+verdict. Call check_grounding only to re-read one claim's evidence in full. Give a short note for any claim that is
+not supported, saying what is missing. Answer for every claim in one response."""
 
 
 def verify(
@@ -37,13 +40,15 @@ def verify(
     reqs = {r.id: r for r in requirements}
     claims = [c for s in sections for c in s.claims]
     scores: dict[str, tuple[float, str]] = {}
+    lock = threading.Lock()
 
     def _score(claim: Claim) -> tuple[float, str]:
         if claim.id not in scores:
             source = "\n".join(passages[e].text for e in claim.evidence_ids if e in passages)
             query = " ".join(reqs[r].quote for r in claim.requirement_ids if r in reqs) or claim.text
             result = check_grounding(claim.text, source, query)
-            scores[claim.id] = (result.grounding, source)
+            with lock:
+                scores[claim.id] = (result.grounding, source)
             tracer.add(
                 "claim_verifier",
                 "guardrail",
@@ -63,21 +68,36 @@ def verify(
         score, source = _score(claim)
         return json.dumps({"claim_id": claim_id, "grounding": score, "evidence": source[:1500]})
 
+    # Grounding checks are independent, so run them in parallel before the agent reads the results.
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        list(pool.map(_score, claims))
+
     verdicts: list[ClaimVerdict] = []
     for start in range(0, len(claims), BATCH):
         batch = claims[start : start + BATCH]
-        listing = json.dumps([{"claim_id": c.id, "claim": c.text} for c in batch], indent=1)
+        listing = json.dumps(
+            [
+                {
+                    "claim_id": c.id,
+                    "claim": c.text,
+                    "grounding_score": round(_score(c)[0], 2),
+                    "evidence": _score(c)[1][:900],
+                }
+                for c in batch
+            ],
+            indent=1,
+        )
         output = run_agent(
             name="claim_verifier",
             kind="lite",
             system_prompt=SYSTEM,
             tools=[check_grounding_tool],
-            prompt=f"Verify these claims:\n<rfp>\n{listing}\n</rfp>",
+            prompt=f"Verify these claims:\n<evidence>\n{listing}\n</evidence>",
             schema=VerifierOutput,
             tracer=tracer,
             stub=_stub(batch, _score, settings.grounding_threshold),
-            tool_calls=len(batch) + 2,
-            model_calls=len(batch) + 3,
+            tool_calls=4,
+            model_calls=6,
         )
         judged = {v.claim_id: v for v in output.verdicts}
         for claim in batch:
@@ -109,9 +129,8 @@ def verify(
 
 def _stub(batch: list[Claim], score, threshold: float):
     def script(messages, tool_names):
-        done = len(tool_results(messages))
-        if done < len(batch):
-            return AIMessage("", tool_calls=[tool_call("check_grounding", {"claim_id": batch[done].id})])
+        if not tool_results(messages):  # re-read one claim, as the real agent may
+            return AIMessage("", tool_calls=[tool_call("check_grounding", {"claim_id": batch[0].id})])
         verdicts = []
         for claim in batch:
             grounding, _ = score(claim)

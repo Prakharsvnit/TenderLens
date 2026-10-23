@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+from concurrent.futures import ThreadPoolExecutor
 
 from langchain_core.messages import AIMessage
 from langchain_core.tools import tool
@@ -16,6 +17,7 @@ from .common import human_text, response_tool, run_agent, tool_results
 from .schemas import AnalystOutput, CriteriaOutput, ExtractedRequirement
 
 PAGES_PER_BATCH = 3
+PARALLEL_READERS = 3
 
 SYSTEM = """You are the RFP Analyst on a bid team. You read pages of a public RFP and extract every atomic
 requirement that the bidder (called Contractor, Proposer, Vendor, Respondent or Bidder) must satisfy or
@@ -161,10 +163,9 @@ def extract_requirements(
         section = pages.get(section_id)
         return section.text if section else "unknown section"
 
-    extracted: list[ExtractedRequirement] = []
-    for batch in _batches(rfp):
+    def read(batch: list) -> list[ExtractedRequirement]:
         text = "\n\n".join(f'<rfp section="{s.id}" page="{s.page_start}">\n{s.text}\n</rfp>' for s in batch)
-        output = run_agent(
+        return run_agent(
             name="rfp_analyst",
             kind="pro",
             system_prompt=system,
@@ -173,8 +174,11 @@ def extract_requirements(
             schema=AnalystOutput,
             tracer=tracer,
             stub=_analyst_stub(rfp, batch, criteria),
-        )
-        extracted.extend(output.requirements)
+        ).requirements
+
+    # Page batches are independent: three Analyst instances read in parallel, results kept in page order.
+    with ThreadPoolExecutor(max_workers=PARALLEL_READERS) as pool:
+        extracted = [req for batch in pool.map(read, _batches(rfp)) for req in batch]
     return _validate(rfp, extracted, criteria, tracer)
 
 

@@ -46,7 +46,7 @@ class Settings:
         )
     )
     # Governance: budgets per run and per agent.
-    run_token_budget: int = field(default_factory=lambda: int(_env("TL_RUN_TOKEN_BUDGET", "600000")))
+    run_token_budget: int = field(default_factory=lambda: int(_env("TL_RUN_TOKEN_BUDGET", "1200000")))
     agent_model_calls: int = field(default_factory=lambda: int(_env("TL_AGENT_MODEL_CALLS", "12")))
     agent_tool_calls: int = field(default_factory=lambda: int(_env("TL_AGENT_TOOL_CALLS", "20")))
     max_rewrite_rounds: int = field(default_factory=lambda: int(_env("TL_MAX_REWRITE_ROUNDS", "2")))

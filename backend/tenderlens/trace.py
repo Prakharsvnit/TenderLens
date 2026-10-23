@@ -5,6 +5,7 @@ The same events feed the app's Trace tab, the orchestration evals and the cost g
 
 from __future__ import annotations
 
+import threading
 import time
 from contextlib import contextmanager
 from datetime import UTC, datetime
@@ -39,10 +40,13 @@ class Tracer:
         self.step = step
         self.events: list[TraceEvent] = []
         self.tokens_used = tokens_used_before
+        self._lock = threading.RLock()  # parallel agent instances share one tracer
 
     def add(self, agent: str, kind: str, **fields) -> TraceEvent:
         event = TraceEvent(run_id=self.run_id, step=self.step, agent=agent, kind=kind, **fields)
-        self.events.append(event)
+        with self._lock:
+            self.events.append(event)
+            self.tokens_used += fields.get("tokens_in", 0) + fields.get("tokens_out", 0)
         return event
 
     def check_budget(self) -> None:
@@ -68,11 +72,11 @@ class Tracer:
         for message in messages:
             if isinstance(message, AIMessage):
                 usage = message.usage_metadata or {}
-                model_id = (message.response_metadata or {}).get("model_id", "")
+                meta = message.response_metadata or {}
+                model_id = meta.get("model_id") or meta.get("model_name") or ""
                 tin, tout = usage.get("input_tokens", 0), usage.get("output_tokens", 0)
                 pin, pout = price_for(model_id or get_settings().model_pro)
-                latency = (message.response_metadata or {}).get("metrics", {}).get("latencyMs", [0])
-                self.tokens_used += tin + tout
+                latency = meta.get("metrics", {}).get("latencyMs", [0])
                 self.add(
                     agent,
                     "model_call",

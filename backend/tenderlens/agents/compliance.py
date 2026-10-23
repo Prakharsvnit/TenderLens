@@ -27,7 +27,8 @@ from .common import response_tool, run_agent, tool_results
 from .schemas import AssessmentDraft, ComplianceOutput, GapDraft
 
 SYSTEM = """You are the Compliance Analyst on a bid team for {bidder}. For each requirement, decide whether the
-bidder meets it, using only evidence you retrieve with search_evidence from the bidder's capability library.
+bidder meets it, using only evidence from the bidder's capability library. Each requirement comes with the top
+passages from a first search. When they don't settle the question, call search_evidence with a better query.
 
 Status:
 - met: the evidence clearly shows the bidder satisfies the whole requirement.
@@ -37,9 +38,9 @@ Status:
   performs (forms, copies, deadlines) unless the library records them, such as a meeting attendance record.
 
 Rules:
-- Cite evidence_ids exactly as returned by search_evidence. Met and partial need at least one citation.
-- Search at most 3 times per requirement and reuse results across related requirements. Pass a category
-  to search_evidence to focus on matching documents.
+- Cite evidence ids exactly as given. Met and partial need at least one citation.
+- Search at most 2 more times per requirement, and only when the given passages are not enough. Pass a
+  category to search_evidence to focus on matching documents. Answer for all requirements in one response.
 - confidence is your certainty from 0 to 1.
 - For every requirement that is partial, not_met or no_evidence and not a pure submission step, add a gap with
   severity (critical for pass/fail requirements) and a mitigation: teaming_partner, clarification_question,
@@ -79,10 +80,37 @@ def assess_batch(
             retrieved[found.id] = found
         return found.text if found else "unknown evidence id"
 
+    # First-pass retrieval in code: the top passages for every requirement go into the prompt, so the agent
+    # spends model turns only on the requirements that need a better search.
+    first_pass: dict[str, list[str]] = {}
+    for req in requirements:
+        hits = index.search(req.quote, embedder, [req.category], k=3)
+        first_pass[req.id] = [h.id for h in hits]
+        for h in hits:
+            retrieved[h.id] = h
+    tracer.add(
+        "compliance_analyst",
+        "tool_call",
+        name="first_pass_search",
+        detail=f"{len(requirements)} requirements, {len(retrieved)} passages",
+    )
     listing = json.dumps(
         [
-            {"id": r.id, "quote": r.quote, "category": r.category, "critical": r.critical}
+            {
+                "id": r.id,
+                "quote": r.quote,
+                "category": r.category,
+                "critical": r.critical,
+                "passages": first_pass[r.id],
+            }
             for r in requirements
+        ],
+        indent=1,
+    )
+    passages = json.dumps(
+        [
+            {"id": e.id, "document": e.doc_title, "section": e.section, "text": e.text[:700]}
+            for e in retrieved.values()
         ],
         indent=1,
     )
@@ -91,12 +119,12 @@ def assess_batch(
         kind="pro",
         system_prompt=SYSTEM.format(bidder=bidder),
         tools=[search_evidence, get_passage],
-        prompt=f"Assess these requirements:\n<rfp>\n{listing}\n</rfp>",
+        prompt=f"Assess these requirements:\n<rfp>\n{listing}\n</rfp>\n\nPassages:\n<evidence>\n{passages}\n</evidence>",
         schema=ComplianceOutput,
         tracer=tracer,
         stub=_stub(requirements, index, embedder),
-        tool_calls=3 * len(requirements) + 4,
-        model_calls=2 * len(requirements) + 4,
+        tool_calls=2 * len(requirements) + 2,
+        model_calls=len(requirements) + 4,
     )
     return _validate(requirements, output, retrieved, tracer)
 
@@ -167,10 +195,8 @@ def _validate(
 
 def _stub(requirements: list[Requirement], index: EvidenceIndex, embedder: Embedder):
     def script(messages, tool_names):
-        searched = tool_results(messages)
-        pending = requirements[len(searched) :]
-        if pending:
-            req = pending[0]
+        if not tool_results(messages):  # like the real agent: one follow-up search, then answer
+            req = requirements[0]
             return AIMessage(
                 "", tool_calls=[tool_call("search_evidence", {"query": req.quote, "category": req.category})]
             )
