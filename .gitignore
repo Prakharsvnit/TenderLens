@@ -31,3 +31,4 @@ Thumbs.db
 .vscode/
 .idea/
 data/library/index.json
+infra/cdk-outputs.json

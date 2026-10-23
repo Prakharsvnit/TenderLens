@@ -4,7 +4,7 @@ TenderLens is an RFP response and compliance agent. It reads a request for propo
 
 Five specialist agents, built with LangGraph on Amazon Nova, do the reading, judging and writing. AWS Step Functions orchestrates them, with two human checkpoints. Everything is serverless on AWS, so the stack costs nothing while idle.
 
-> Status: v1 is under active development (October 2026). The design is final; code lands in small commits.
+> Status: v1, October 2026. The full workflow, the web app and the AWS stack are built; evals against Amazon Nova come next.
 
 ## The problem
 
@@ -84,7 +84,57 @@ TenderLens uses only serverless, pay-per-use services: no clusters, load balance
 
 ## Getting started
 
-Setup and deployment steps will be added with the first deployable version. You'll need Python 3.12 with [uv](https://docs.astral.sh/uv/), Node.js 20, Docker, the AWS CLI, and an AWS account with Amazon Bedrock access to Amazon Nova in `us-west-2`.
+You need Python 3.12 with [uv](https://docs.astral.sh/uv/), Node.js 20+ with pnpm, and the demo RFPs:
+
+```bash
+python scripts/fetch_rfps.py
+```
+
+### Run it locally, no AWS needed
+
+The local API runs the same nine steps, with the same two human checkpoints, in-process. `--stub` swaps the models for scripted offline agents, so the whole flow works without credentials.
+
+```bash
+cd backend && uv run python -m tenderlens.api.devserver --stub
+```
+
+```bash
+cd web && pnpm install && pnpm dev
+```
+
+Open http://localhost:5173 and upload an RFP. To use real Amazon Nova models while keeping storage local, drop `--stub` and set `TL_AWS_PROFILE` to an AWS CLI profile with Bedrock access.
+
+### Deploy to AWS
+
+You need the AWS CLI with a configured profile, Docker running (CDK builds the Lambda layer in a container), and Bedrock access to Amazon Nova and Titan Text Embeddings V2 in `us-west-2`.
+
+```bash
+scripts/deploy.sh tenderlens
+```
+
+The script builds the evidence index with Titan embeddings, builds the web app, bootstraps CDK and deploys the stack, then prints the web URL. Then create logins (self sign-up is off):
+
+```bash
+scripts/create_user.sh person@example.com tenderlens
+```
+
+Turn live runs off when you don't need them. Past runs stay viewable, and the stack then costs nothing:
+
+```bash
+scripts/live_runs.sh off tenderlens
+```
+
+### Tests and evals
+
+```bash
+cd backend && uv run pytest
+```
+
+Unit and end-to-end tests run offline with the stub models. The eval harness scores a real run against the hand-labelled Belle Isle gold set, and calls the models, so run it on demand:
+
+```bash
+cd backend && uv run python ../evals/run_eval.py --pdf ../data/rfps/belle-isle-rfp-2026-04.pdf
+```
 
 ## License
 
