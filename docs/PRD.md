@@ -94,6 +94,6 @@ The fictional bidder attended the walkthrough and carries $2M of E&O cover, but 
 
 **Assumptions:**
 
-- The AWS account runs in us-west-2 with Bedrock access to Amazon Nova and Titan embeddings.
+- The AWS account runs in ap-southeast-2 (Sydney) with Bedrock access to Amazon Nova, through APAC cross-region inference profiles, and Titan embeddings.
 - Every service costs nothing while idle.
 - Live runs are capped per day; one parameter makes the app replay-only.

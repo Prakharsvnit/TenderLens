@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Deploy TenderLens to an AWS account.
-#   scripts/deploy.sh [aws-profile]        default profile: tenderlens, region: us-west-2
+#   scripts/deploy.sh [aws-profile]        default profile: tenderlens, region: ap-southeast-2
 # Needs: AWS CLI (profile configured), uv, Node 20+, pnpm, Docker running.
 set -euo pipefail
 
 PROFILE="${1:-tenderlens}"
-REGION="${AWS_REGION:-us-west-2}"
+REGION="${AWS_REGION:-ap-southeast-2}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 export AWS_PROFILE="$PROFILE" CDK_DEFAULT_REGION="$REGION" JSII_SILENCE_WARNING_DEPRECATED_NODE_VERSION=1
 CDK_DEFAULT_ACCOUNT="$(aws sts get-caller-identity --query Account --output text)"
