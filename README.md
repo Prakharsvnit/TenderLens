@@ -106,7 +106,7 @@ Open http://localhost:5173 and upload an RFP. To use real Amazon Nova models whi
 
 ### Deploy to AWS
 
-You need the AWS CLI with a configured profile, Docker running (CDK builds the Lambda layer in a container), and Bedrock access to Amazon Nova and Titan Text Embeddings V2 in `ap-southeast-2` (Sydney). Nova calls go through the APAC cross-region inference profiles. To deploy elsewhere, set `AWS_REGION` and the `TL_MODEL_PRO` / `TL_MODEL_LITE` profile IDs for that region.
+You need the AWS CLI with a configured profile, uv, Node 20+ and pnpm, and Bedrock access to Amazon Nova and Titan Text Embeddings V2 in `ap-southeast-2` (Sydney). Nova calls go through the APAC cross-region inference profiles. To deploy elsewhere, set `AWS_REGION` and the `TL_MODEL_PRO` / `TL_MODEL_LITE` profile IDs for that region.
 
 ```bash
 scripts/deploy.sh tenderlens

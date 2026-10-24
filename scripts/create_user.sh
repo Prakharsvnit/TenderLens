@@ -6,13 +6,14 @@ set -euo pipefail
 
 EMAIL="${1:?usage: scripts/create_user.sh EMAIL [aws-profile]}"
 PROFILE="${2:-tenderlens}"
-POOL="$(aws cloudformation describe-stacks --stack-name TenderLens --profile "$PROFILE" \
+[ "${AWS_EXECUTION_ENV:-}" = CloudShell ] || export AWS_PROFILE="$PROFILE"  # CloudShell is already signed in
+POOL="$(aws cloudformation describe-stacks --stack-name TenderLens \
   --query "Stacks[0].Outputs[?OutputKey=='UserPoolId'].OutputValue" --output text)"
 
 read -r -s -p "Password for $EMAIL (8+ characters with upper, lower, number and symbol): " PASSWORD
 echo
-aws cognito-idp admin-create-user --profile "$PROFILE" --user-pool-id "$POOL" --username "$EMAIL" \
+aws cognito-idp admin-create-user --user-pool-id "$POOL" --username "$EMAIL" \
   --user-attributes Name=email,Value="$EMAIL" Name=email_verified,Value=true --message-action SUPPRESS >/dev/null
-aws cognito-idp admin-set-user-password --profile "$PROFILE" --user-pool-id "$POOL" --username "$EMAIL" \
+aws cognito-idp admin-set-user-password --user-pool-id "$POOL" --username "$EMAIL" \
   --password "$PASSWORD" --permanent
 echo "Created $EMAIL."

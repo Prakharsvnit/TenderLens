@@ -9,11 +9,13 @@ ACTION="${1:?usage: scripts/live_runs.sh on|off|until YYYY-MM-DD [aws-profile]}"
 if [ "$ACTION" = "until" ]; then
   DATE="${2:?give a date, e.g. 2026-11-15}"
   PROFILE="${3:-tenderlens}"
-  aws ssm put-parameter --profile "$PROFILE" --name /tenderlens/live-runs --type String --value on --overwrite >/dev/null
-  aws ssm put-parameter --profile "$PROFILE" --name /tenderlens/live-until --type String --value "$DATE" --overwrite >/dev/null
+  [ "${AWS_EXECUTION_ENV:-}" = CloudShell ] || export AWS_PROFILE="$PROFILE"  # CloudShell is already signed in
+  aws ssm put-parameter --name /tenderlens/live-runs --type String --value on --overwrite >/dev/null
+  aws ssm put-parameter --name /tenderlens/live-until --type String --value "$DATE" --overwrite >/dev/null
   echo "Live runs on until $DATE."
 else
   PROFILE="${2:-tenderlens}"
-  aws ssm put-parameter --profile "$PROFILE" --name /tenderlens/live-runs --type String --value "$ACTION" --overwrite >/dev/null
+  [ "${AWS_EXECUTION_ENV:-}" = CloudShell ] || export AWS_PROFILE="$PROFILE"  # CloudShell is already signed in
+  aws ssm put-parameter --name /tenderlens/live-runs --type String --value "$ACTION" --overwrite >/dev/null
   echo "Live runs $ACTION."
 fi

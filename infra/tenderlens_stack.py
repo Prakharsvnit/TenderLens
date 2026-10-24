@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
+import shutil
+import subprocess
 from pathlib import Path
 
+import jsii
 from aws_cdk import (
     Aws,
     BundlingOptions,
     CfnOutput,
     Duration,
+    ILocalBundling,
     RemovalPolicy,
     Stack,
 )
@@ -37,6 +41,27 @@ CODE_EXCLUDES = [
     "**/__pycache__", "**/.pytest_cache", "**/.ruff_cache", "data/rfps", "backend/tests", "backend/uv.lock",
     "backend/requirements.txt",
 ]
+
+
+@jsii.implements(ILocalBundling)
+class UvLayerBundling:
+    """Installs Linux wheels for the Lambda runtime with uv, so deploys don't need Docker.
+
+    Returns False when uv is missing or a package has no wheel, and CDK falls back to Docker.
+    """
+
+    def try_bundle(self, output_dir: str, *args, **kwargs) -> bool:
+        if not shutil.which("uv"):
+            return False
+        target = Path(output_dir) / "python"
+        result = subprocess.run([
+            "uv", "pip", "install", "-q", "-r", str(REPO / "backend" / "requirements.txt"),
+            "--target", str(target), "--python-platform", "x86_64-manylinux_2_28",
+            "--python-version", "3.12", "--only-binary", ":all:",
+        ])
+        if result.returncode != 0:
+            shutil.rmtree(target, ignore_errors=True)
+        return result.returncode == 0
 
 
 class TenderLensStack(Stack):
@@ -141,6 +166,7 @@ class TenderLensStack(Stack):
                 str(REPO / "backend"),
                 exclude=[".venv", "tests", "tenderlens", "**/__pycache__", "uv.lock", ".pytest_cache", ".ruff_cache"],
                 bundling=BundlingOptions(
+                    local=UvLayerBundling(),
                     image=lambda_.Runtime.PYTHON_3_12.bundling_image,
                     command=["bash", "-c",
                              "pip install --no-cache-dir -q -r requirements.txt -t /asset-output/python && "
