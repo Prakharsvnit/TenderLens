@@ -10,6 +10,8 @@ PROFILE="${1:-tenderlens}"
 REGION="${AWS_REGION:-ap-southeast-2}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 export CDK_DEFAULT_REGION="$REGION" TL_REGION="$REGION" JSII_SILENCE_WARNING_DEPRECATED_NODE_VERSION=1
+# CloudShell home is mode 0777, which the jsii package cache refuses to use
+export JSII_RUNTIME_PACKAGE_CACHE=disabled
 CDK_DEFAULT_ACCOUNT="$(aws sts get-caller-identity --query Account --output text)"
 export CDK_DEFAULT_ACCOUNT
 echo "Deploying to account $CDK_DEFAULT_ACCOUNT in $REGION"
