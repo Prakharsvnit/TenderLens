@@ -17,7 +17,11 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["pytest>=8.0", "ruff>=0.6"]
+dev = [
+    "boto3[crt]>=1.43.118",
+    "pytest>=8.0",
+    "ruff>=0.6",
+]
 
 [build-system]
 requires = ["hatchling"]
