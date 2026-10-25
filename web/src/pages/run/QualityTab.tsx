@@ -200,20 +200,19 @@ export function QualityTab({
           </div>
         </dl>
         <p className="mt-3 text-xs text-slate-500">
-          A run stops when it reaches its token budget. Each agent also has model-call and tool-call limits, and once
-          its tools are spent it can only give its answer.
+          A run stops at its token budget. Each agent has call limits; once its tools are spent it must answer.
         </p>
       </Section>
 
       <Section icon={<ShieldCheck className="h-4 w-4" />} title="Bedrock Guardrails">
         <p className="text-sm text-slate-600">
           <span className="font-medium text-slate-900">Input screening: </span>
-          {screened?.detail ?? 'not recorded'} (prompt-attack filter on every page before any agent reads it).
+          {screened?.detail ?? 'not recorded'} (prompt-attack filter, before any agent reads a page).
         </p>
         <p className="mt-2 text-sm text-slate-600">
           <span className="font-medium text-slate-900">Contextual grounding: </span>
           {grounding.length
-            ? `${grounded} of ${grounding.length} claim checks scored at or above ${threshold}; below that a claim can't be marked supported.`
+            ? `${grounded} of ${grounding.length} claim checks at or above ${threshold}, the bar for “supported”.`
             : 'no claims checked yet.'}
         </p>
         {grounding.length > 0 && (
@@ -242,8 +241,8 @@ export function QualityTab({
           <Empty>No checks recorded yet.</Empty>
         )}
         <p className="mt-3 text-xs text-slate-500">
-          Every hand-off is validated against its schema. Quotes must exist in the PDF, citations must point at
-          retrieved evidence, and verdicts are overridden when grounding is too low.
+          Every hand-off is schema-checked. Quotes must be in the PDF, citations must be retrieved evidence, and weak
+          grounding overrides a verdict.
         </p>
       </Section>
 

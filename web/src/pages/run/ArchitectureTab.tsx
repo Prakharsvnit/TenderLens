@@ -31,55 +31,55 @@ interface StepInfo {
 const INFO: Record<StepId, StepInfo> = {
   parse: {
     lambda: 'ParseStep',
-    what: 'pdfplumber splits the PDF into pages. Bedrock Guardrails screens every page for prompt-injection attacks before any agent reads it.',
+    what: 'pdfplumber splits the PDF into pages; Bedrock Guardrails screens each page for prompt injection.',
     models: ['Guardrails · prompt attack'],
   },
   extract: {
     agent: 'RFP Analyst',
     lambda: 'ExtractStep',
-    what: 'Nova Lite reads the scored evaluation criteria. Nova Pro extracts atomic requirements one page per call, four pages in parallel. A rule-based shall/must scanner flags possible misses, and every quote is checked against the PDF text.',
+    what: 'Nova Lite reads the scoring criteria. Nova Pro extracts requirements page by page, four in parallel. A shall/must scanner flags misses; every quote is checked against the PDF.',
     models: ['Nova Pro', 'Nova Lite'],
     tools: ['get_section'],
   },
   confirm: {
     lambda: 'Checkpoint (task token)',
-    what: 'The workflow pauses on a Step Functions task token. The bid manager reviews and edits the requirements, and the API resumes the run.',
+    what: 'Paused on a Step Functions task token until the bid manager confirms; the API resumes the run.',
   },
   assess: {
     agent: 'Compliance Analyst',
     lambda: 'AssessStep × Map',
-    what: 'A Map state fans the requirements out in batches of ten. Hybrid retrieval (BM25 + Titan embeddings, reciprocal rank fusion) finds evidence in the bidder library, and Nova Pro rules met, partial, not met or no evidence with citations that are validated.',
+    what: 'A Map state fans out batches of ten. Hybrid search (BM25 + Titan embeddings) finds evidence; Nova Pro rules on each requirement with validated citations.',
     models: ['Nova Pro', 'Titan Embeddings V2'],
     tools: ['search_evidence', 'get_passage'],
   },
   draft: {
     agent: 'Proposal Writer',
     lambda: 'DraftStep',
-    what: 'Nova Pro drafts the response as claims, each tied to the requirements it answers and the evidence that backs it. On a rewrite round it revises or drops the claims the Verifier rejected.',
+    what: 'Nova Pro drafts claims tied to requirements and evidence. On a rewrite round it fixes or drops rejected claims.',
     models: ['Nova Pro'],
     tools: ['get_evidence'],
   },
   verify: {
     agent: 'Claim Verifier',
     lambda: 'VerifyStep',
-    what: 'Guardrails contextual grounding scores every claim against its evidence, and Nova Lite gives the verdict. Unsupported claims loop back to the Writer, at most twice.',
+    what: 'Guardrails grounding scores each claim; Nova Lite gives the verdict. Unsupported claims go back to the Writer, up to twice.',
     models: ['Nova Lite', 'Guardrails · grounding'],
     tools: ['check_grounding'],
   },
   decide: {
     agent: 'Bid Strategist',
     lambda: 'DecideStep',
-    what: 'Nova Pro applies the bid policy: knock-out rules, a weighted score against the evaluation criteria, and what-if analysis of the gaps.',
+    what: 'Applies the bid policy: knock-outs, a weighted score and what-ifs. Nova Pro explains the result.',
     models: ['Nova Pro'],
     tools: ['list_gaps', 'get_bid_policy', 'compute_score'],
   },
   approve: {
     lambda: 'Checkpoint (task token)',
-    what: 'The workflow pauses again. A person accepts or overrides the bid decision with a reason, and the decision is written to the audit log.',
+    what: 'Paused again until a person approves or overrides with a reason; logged for audit.',
   },
   publish: {
     lambda: 'PublishStep',
-    what: 'Writes the compliance matrix (XLSX) and the draft response (DOCX) to S3, and sends run KPIs to CloudWatch.',
+    what: 'Writes the XLSX matrix and DOCX draft to S3; sends KPIs to CloudWatch.',
   },
 }
 

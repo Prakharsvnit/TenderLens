@@ -36,8 +36,8 @@ export function DecisionTab({ view, onEvidence }: { view: RunView; onEvidence: (
         </div>
         {d.rationale && <p className="mt-4 text-sm leading-relaxed text-slate-700">{d.rationale}</p>}
         <p className="mt-3 text-xs text-slate-400">
-          Knock-outs first, then a score weighted by the RFP's own evaluation points. Thresholds come from the bid policy;
-          the model only explains the result.
+          Knock-outs first, then a score weighted by the RFP's own points. Computed in code from the bid policy; the
+          model only explains it.
         </p>
       </Card>
 

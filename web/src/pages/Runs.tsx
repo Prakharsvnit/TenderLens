@@ -31,8 +31,7 @@ function NewRun({ live }: { live: ApiConfig | null }) {
         <div className="flex-1">
           <h2 className="font-semibold text-slate-900">New run</h2>
           <p className="mt-1 text-sm text-slate-500">
-            Upload an RFP PDF. Five agents extract the requirements, find the evidence, draft a cited response, check every
-            claim and recommend whether to bid. You confirm the requirements and approve the decision.
+            Upload an RFP PDF. The agents take it to a cited draft and a bid recommendation; you confirm and approve.
           </p>
         </div>
         <div className="flex items-center gap-2">

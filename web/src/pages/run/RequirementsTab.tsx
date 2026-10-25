@@ -85,7 +85,7 @@ export function RequirementsTab({
         <Card className="p-5">
           <h3 className="text-sm font-semibold text-slate-900">Possible misses from the shall/must scan</h3>
           <p className="mt-1 text-sm text-slate-500">
-            Rule-based safety net: obligation sentences no extracted requirement covers. Review them at the checkpoint.
+            Shall/must sentences no requirement covers. Check them at the checkpoint.
           </p>
           <ul className="mt-3 space-y-2 text-sm text-slate-700">
             {set.possible_misses.map((m, i) => (
