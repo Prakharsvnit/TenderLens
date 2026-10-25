@@ -10,5 +10,6 @@ TABLE="$(aws cloudformation describe-stacks --stack-name TenderLens \
   --query "Stacks[0].Outputs[?OutputKey=='TableName'].OutputValue" --output text)"
 aws dynamodb update-item --table-name "$TABLE" \
   --key "{\"PK\": {\"S\": \"RUN#$RUN_ID\"}, \"SK\": {\"S\": \"META\"}}" \
-  --update-expression "SET shared = :t" --expression-attribute-values '{":t": {"BOOL": true}}'
+  --update-expression "SET #s = :t" --expression-attribute-names '{"#s": "shared"}' \
+  --expression-attribute-values '{":t": {"BOOL": true}}'
 echo "Run $RUN_ID is now visible to all signed-in users."
