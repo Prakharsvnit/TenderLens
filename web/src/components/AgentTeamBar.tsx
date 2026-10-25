@@ -105,7 +105,7 @@ export function AgentTeamBar({ run, trace }: { run: Run; trace: TraceEvent[] }) 
   const rounds = run.rewrite_rounds ?? 0
   return (
     <div>
-      <ol className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-8">
+      <ol className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
         {TEAM.map((m, i) => {
           const state = stateOf(run, m.step)
           const agent = m.agent ? AGENT_BY_ID[m.agent] : undefined

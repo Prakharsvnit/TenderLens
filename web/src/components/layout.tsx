@@ -50,14 +50,14 @@ export function PublicLayout({ children }: { children: ReactNode }) {
         <>
           <Logo to="/" />
           <nav className="flex items-center gap-1 text-sm sm:gap-3">
-            <Link to="/demo" className="rounded-md px-2 py-1.5 text-slate-600 hover:text-slate-900">
+            <Link to="/demo" className="whitespace-nowrap rounded-md px-2 py-1.5 text-slate-600 hover:text-slate-900">
               Demo runs
             </Link>
-            <a href={REPO_URL} target="_blank" rel="noreferrer"
+            <a href={REPO_URL} target="_blank" rel="noreferrer" aria-label="Source code"
               className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-slate-600 hover:text-slate-900">
-              <Code className="h-4 w-4" /> Code
+              <Code className="h-4 w-4" /> <span className="hidden sm:inline">Code</span>
             </a>
-            <Link to="/app" className="rounded-lg bg-brand-600 px-3 py-1.5 font-medium text-white hover:bg-brand-700">
+            <Link to="/app" className="whitespace-nowrap rounded-lg bg-brand-600 px-3 py-1.5 font-medium text-white hover:bg-brand-700">
               Open app
             </Link>
           </nav>

@@ -7,6 +7,7 @@ import { useToast } from '../components/toast'
 import { AgentTeamBar } from '../components/AgentTeamBar'
 import { Button, Card, RunStatusChip, Spinner, Tabs } from '../components/ui'
 import type { Evidence, RunView, TraceEvent } from '../types'
+import { ActivityTab } from './run/ActivityTab'
 import { ArchitectureTab } from './run/ArchitectureTab'
 import { ApproveBanner, ConfirmBanner } from './run/Checkpoints'
 import { DecisionTab } from './run/DecisionTab'
@@ -18,7 +19,7 @@ import { QualityTab } from './run/QualityTab'
 import { RequirementsTab } from './run/RequirementsTab'
 import { TraceTab } from './run/TraceTab'
 
-type TabId = 'overview' | 'architecture' | 'requirements' | 'matrix' | 'gaps' | 'draft' | 'decision' | 'trace' | 'quality'
+type TabId = 'overview' | 'activity' | 'architecture' | 'requirements' | 'matrix' | 'gaps' | 'draft' | 'decision' | 'trace' | 'quality'
 const ACTIVE = new Set(['uploading', 'queued', 'running', 'awaiting_confirmation', 'awaiting_approval'])
 
 /** One run. In public mode it reads the shared-run API without signing in and hides every action. */
@@ -128,6 +129,7 @@ export function RunPage({ publicMode = false }: { publicMode?: boolean }) {
         onChange={setTab}
         tabs={[
           { id: 'overview', label: 'Overview' },
+          { id: 'activity', label: 'Agent activity' },
           { id: 'architecture', label: 'Architecture' },
           { id: 'requirements', label: 'Requirements', count: reqs.length || undefined },
           { id: 'matrix', label: 'Compliance matrix' },
@@ -148,6 +150,7 @@ export function RunPage({ publicMode = false }: { publicMode?: boolean }) {
       {tab === 'draft' && <DraftTab view={view} onEvidence={openEvidence} />}
       {tab === 'decision' && <DecisionTab view={view} onEvidence={openEvidence} />}
       {tab === 'trace' && <TraceTab events={trace} />}
+      {tab === 'activity' && <ActivityTab run={run} trace={trace} audit={view.audit ?? []} />}
       {tab === 'architecture' && <ArchitectureTab run={run} trace={trace} />}
       {tab === 'quality' && <QualityTab view={view} trace={trace} canEvaluate={!publicMode} onEvaluated={load} />}
 
