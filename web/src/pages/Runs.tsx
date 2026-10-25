@@ -2,7 +2,7 @@ import { FileUp, Info, Upload } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../api'
-import { Button, Card, DecisionBadge, Empty, RunStatusChip, Spinner, pct, usd } from '../components/ui'
+import { Button, Card, DecisionBadge, Empty, ErrorState, RunStatusChip, Skeleton, pct, usd } from '../components/ui'
 import type { ApiConfig, Run } from '../types'
 
 function NewRun({ live }: { live: ApiConfig | null }) {
@@ -85,9 +85,10 @@ export function RunsPage() {
         <p className="mt-1 text-sm text-slate-500">Each run takes one RFP from upload to a bid/no-bid recommendation.</p>
       </div>
       <NewRun live={live} />
-      {error && <p className="text-sm text-rose-600">{error}</p>}
-      {runs === null ? (
-        <Spinner label="Loading runs" />
+      {error && runs === null ? (
+        <ErrorState title="Could not load your runs" message={error} />
+      ) : runs === null ? (
+        <Skeleton rows={3} />
       ) : runs.length === 0 ? (
         <Empty>No runs yet. Upload an RFP to start.</Empty>
       ) : (

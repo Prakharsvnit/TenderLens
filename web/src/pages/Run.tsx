@@ -1,12 +1,13 @@
 import { ArrowLeft, Download, TriangleAlert } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { NotFoundPage } from './NotFound'
 import { api, publicApi, type RunReader } from '../api'
 import { EvidencePanel } from '../components/EvidencePanel'
 import { RequirementJourney } from '../components/RequirementJourney'
 import { useToast } from '../components/toast'
 import { AgentTeamBar } from '../components/AgentTeamBar'
-import { Button, Card, RunStatusChip, Spinner, Tabs } from '../components/ui'
+import { Button, Card, ErrorState, RunStatusChip, Skeleton, Tabs } from '../components/ui'
 import type { Evidence, RunView, TraceEvent } from '../types'
 import { ActivityTab } from './run/ActivityTab'
 import { ArchitectureTab } from './run/ArchitectureTab'
@@ -63,8 +64,19 @@ export function RunPage({ publicMode = false }: { publicMode?: boolean }) {
   )
   const openEvidence = (id: string) => setEvidence(evidenceById[id] ?? null)
 
-  if (error && !view) return <p className="text-sm text-rose-600">{error}</p>
-  if (!view) return <Spinner label="Loading run" />
+  if (error && !view)
+    return /not found/i.test(error) ? (
+      <NotFoundPage />
+    ) : (
+      <ErrorState title="Could not load this run" message={error} onRetry={() => { setError(''); load() }} />
+    )
+  if (!view)
+    return (
+      <div className="space-y-5">
+        <div className="h-8 w-64 animate-pulse rounded-lg bg-slate-200/70" />
+        <Skeleton rows={4} />
+      </div>
+    )
 
   const { run } = view
   const reqs = view.RequirementSet?.requirements ?? []

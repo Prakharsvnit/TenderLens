@@ -185,3 +185,29 @@ export function duration(seconds: number | undefined): string {
   if (seconds < 60) return `${Math.round(seconds)}s`
   return `${Math.floor(seconds / 60)}m ${Math.round(seconds % 60)}s`
 }
+
+/** Grey placeholder blocks shown while data loads. */
+export function Skeleton({ rows = 3, className }: { rows?: number; className?: string }) {
+  return (
+    <div className={cx('animate-pulse space-y-3', className)} aria-busy="true" aria-label="Loading">
+      {Array.from({ length: rows }, (_, i) => (
+        <div key={i} className="h-16 rounded-xl bg-slate-200/70" />
+      ))}
+    </div>
+  )
+}
+
+/** A readable failure with a way to try again. */
+export function ErrorState({ title, message, onRetry }: { title: string; message: string; onRetry?: () => void }) {
+  return (
+    <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-sm">
+      <div className="font-semibold text-rose-800">{title}</div>
+      <p className="mt-1 text-rose-700">{message}</p>
+      {onRetry && (
+        <button onClick={onRetry} className="mt-3 rounded-lg bg-white px-3 py-1.5 font-medium text-rose-700 ring-1 ring-rose-300 hover:bg-rose-100">
+          Try again
+        </button>
+      )}
+    </div>
+  )
+}
