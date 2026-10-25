@@ -18,7 +18,7 @@ function NewRun({ live }: { live: ApiConfig | null }) {
     setBusy(true)
     setError('')
     try {
-      navigate(`/runs/${await api.startRun(file)}`)
+      navigate(`/app/runs/${await api.startRun(file)}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not start the run')
       setBusy(false)
@@ -91,7 +91,7 @@ export function RunsPage() {
       ) : runs.length === 0 ? (
         <Empty>No runs yet. Upload an RFP to start.</Empty>
       ) : (
-        <RunTable runs={runs} base="/runs" />
+        <RunTable runs={runs} base="/app/runs" />
       )}
     </div>
   )

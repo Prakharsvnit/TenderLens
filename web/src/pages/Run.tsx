@@ -72,7 +72,7 @@ export function RunPage({ publicMode = false }: { publicMode?: boolean }) {
 
   return (
     <div className="space-y-5">
-      <Link to={publicMode ? '/demo' : '/'} className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-800">
+      <Link to={publicMode ? '/demo' : '/app'} className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-800">
         <ArrowLeft className="h-4 w-4" /> All runs
       </Link>
 

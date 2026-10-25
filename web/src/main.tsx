@@ -1,119 +1,82 @@
 import { StrictMode, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import { BrowserRouter, Link, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
-import { LogOut, ScanSearch } from 'lucide-react'
+import { BrowserRouter, Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom'
 import { currentEmail, signOut } from './auth'
 import { loadConfig } from './config'
 import './index.css'
+import { AppLayout, PublicLayout } from './components/layout'
+import { ToastProvider } from './components/toast'
+import { Spinner } from './components/ui'
 import { DemoPage } from './pages/Demo'
+import { LandingPage } from './pages/Landing'
 import { LoginPage } from './pages/Login'
+import { NotFoundPage } from './pages/NotFound'
 import { RunPage } from './pages/Run'
 import { RunsPage } from './pages/Runs'
-import { Spinner } from './components/ui'
 
-function Shell({ email, onSignOut }: { email: string; onSignOut: () => void }) {
+/** The signed-in app under /app: sign-in first, then runs. */
+function SignedInApp() {
   const navigate = useNavigate()
+  const [email, setEmail] = useState<string | null | undefined>(undefined)
+
+  useEffect(() => {
+    currentEmail().then(setEmail)
+  }, [])
+
+  if (email === undefined) return <Spinner label="Loading" />
+  if (email === null) return <LoginPage onSignedIn={setEmail} />
   return (
-    <div className="min-h-screen">
-      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
-          <Link to="/" className="flex items-center gap-2 font-semibold text-slate-900">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-600 text-white">
-              <ScanSearch className="h-4 w-4" />
-            </span>
-            TenderLens
-            <span className="hidden text-sm font-normal text-slate-400 sm:inline">RFP compliance agents</span>
-          </Link>
-          <div className="flex items-center gap-3 text-sm text-slate-600">
-            <span className="hidden sm:inline">{email}</span>
-            <button
-              onClick={() => {
-                onSignOut()
-                navigate('/')
-              }}
-              className="rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-              title="Sign out"
-            >
-              <LogOut className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      </header>
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
-        <Routes>
-          <Route path="/" element={<RunsPage />} />
-          <Route path="/runs/:runId" element={<RunPage />} />
-          <Route path="*" element={<Navigate to="/" />} />
-        </Routes>
-      </main>
-    </div>
+    <AppLayout
+      email={email}
+      onSignOut={() => {
+        signOut()
+        setEmail(null)
+        navigate('/app')
+      }}
+    >
+      <Routes>
+        <Route index element={<RunsPage />} />
+        <Route path="runs/:runId" element={<RunPage />} />
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+    </AppLayout>
   )
 }
 
-/** The public demo: no sign-in, read-only views of shared runs. */
-function DemoShell() {
-  return (
-    <div className="min-h-screen">
-      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
-          <Link to="/demo" className="flex items-center gap-2 font-semibold text-slate-900">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-600 text-white">
-              <ScanSearch className="h-4 w-4" />
-            </span>
-            TenderLens
-            <span className="hidden text-sm font-normal text-slate-400 sm:inline">RFP compliance agents</span>
-          </Link>
-          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
-            Public demo · read-only
-          </span>
-        </div>
-      </header>
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
-        <Routes>
-          <Route path="/demo" element={<DemoPage />} />
-          <Route path="/demo/runs/:runId" element={<RunPage publicMode />} />
-          <Route path="*" element={<Navigate to="/demo" />} />
-        </Routes>
-      </main>
-    </div>
-  )
+function OldRunLink() {
+  const { runId } = useParams()
+  return <Navigate to={`/app/runs/${runId}`} replace />
 }
 
 function App() {
-  const location = useLocation()
   const [ready, setReady] = useState(false)
-  const [email, setEmail] = useState<string | null>(null)
-
   useEffect(() => {
-    loadConfig()
-      .then(() => currentEmail())
-      .then((e) => setEmail(e))
-      .finally(() => setReady(true))
+    loadConfig().finally(() => setReady(true))
   }, [])
-
   if (!ready)
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Spinner label="Loading" />
       </div>
     )
-  if (location.pathname.startsWith('/demo')) return <DemoShell />
-  if (!email) return <LoginPage onSignedIn={(e) => setEmail(e)} />
   return (
-    <Shell
-      email={email}
-      onSignOut={() => {
-        signOut()
-        setEmail(null)
-      }}
-    />
+    <Routes>
+      <Route path="/" element={<PublicLayout><LandingPage /></PublicLayout>} />
+      <Route path="/demo" element={<PublicLayout><DemoPage /></PublicLayout>} />
+      <Route path="/demo/runs/:runId" element={<PublicLayout><RunPage publicMode /></PublicLayout>} />
+      <Route path="/app/*" element={<SignedInApp />} />
+      <Route path="/runs/:runId" element={<OldRunLink />} />
+      <Route path="*" element={<PublicLayout><NotFoundPage /></PublicLayout>} />
+    </Routes>
   )
 }
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
-      <App />
+      <ToastProvider>
+        <App />
+      </ToastProvider>
     </BrowserRouter>
   </StrictMode>,
 )
