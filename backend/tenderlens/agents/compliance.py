@@ -39,7 +39,8 @@ Status:
 
 Rules:
 - Cite evidence ids exactly as given. Met and partial need at least one citation.
-- Search at most 2 more times per requirement, and only when the given passages are not enough. Pass a
+- Most requirements need no extra search. When some do, make all those searches together in one turn (at most
+  {searches} in total), then answer. Every extra turn re-sends the whole conversation, so keep turns few. Pass a
   category to search_evidence to focus on matching documents. Answer for all requirements in one response.
 - confidence is your certainty from 0 to 1.
 - For every requirement that is partial, not_met or no_evidence and not a pure submission step, add a gap with
@@ -114,17 +115,19 @@ def assess_batch(
         ],
         indent=1,
     )
+    searches = max(3, len(requirements) // 2)
     output = run_agent(
         name="compliance_analyst",
         kind="pro",
-        system_prompt=SYSTEM.format(bidder=bidder),
+        system_prompt=SYSTEM.format(bidder=bidder, searches=searches),
         tools=[search_evidence, get_passage],
         prompt=f"Assess these requirements:\n<rfp>\n{listing}\n</rfp>\n\nPassages:\n<evidence>\n{passages}\n</evidence>",
         schema=ComplianceOutput,
         tracer=tracer,
         stub=_stub(requirements, index, embedder),
-        tool_calls=2 * len(requirements) + 2,
-        model_calls=len(requirements) + 4,
+        # Searches beyond the cap are refused and the model answers; 4 turns is search, search, answer, retry.
+        tool_calls=searches,
+        model_calls=4,
     )
     return _validate(requirements, output, retrieved, tracer)
 
