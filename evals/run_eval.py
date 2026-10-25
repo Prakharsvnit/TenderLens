@@ -90,7 +90,13 @@ def evaluate(run_id: str, gold_path: Path) -> dict:
     supported = sum(v.verdict == ClaimVerdictLabel.supported for v in (verdicts.verdicts if verdicts else []))
 
     trace = store.get_trace(run_id)
-    tool_calls = [(e["agent"], e["name"], e["detail"]) for e in trace if e["kind"] == "tool_call"]
+    # A repeat is the same tool called with the same arguments by the same agent in the same step. Runs traced
+    # before arguments were recorded fall back to comparing outputs.
+    tool_calls = [
+        (e["step"], e["agent"], e["name"], e.get("args") or e["detail"])
+        for e in trace
+        if e["kind"] == "tool_call" and not str(e["detail"]).startswith("Returning structured response")
+    ]
     duplicates = sum(n - 1 for n in Counter(tool_calls).values() if n > 1)
     per_agent: dict[str, dict] = defaultdict(lambda: {"model_calls": 0, "tool_calls": 0, "tokens": 0, "cost_usd": 0.0,
                                                      "seconds": 0.0, "validations": 0})
@@ -127,6 +133,10 @@ def evaluate(run_id: str, gold_path: Path) -> dict:
         "expected_decision": gold.get("expected_decision"),
         "score_pct": rec.decision.score_pct if rec else None,
         "missed_critical": [g["id"] for g in critical if g["id"] not in matched],
+        "missed": [{"gold": g["id"], "page": g.get("page"), "quote": g["quote"]}
+                   for g in gold["requirements"] if g["id"] not in matched],
+        "not_in_gold": [{"id": r.id, "page": r.page, "quote": r.quote}
+                        for r in extracted if r not in precise],
         "wrong_status": [
             {"gold": g["id"], "got": status.get(matched[g["id"]]), "expected": g["expected_status"]}
             for g in scored if g not in correct
@@ -165,6 +175,12 @@ def to_markdown(report: dict) -> str:
                      f"{s['cost_usd']:.4f} | {s['seconds']} |")
     if report["missed_critical"]:
         lines += ["", f"Missed critical requirements: {', '.join(report['missed_critical'])}"]
+    if report.get("missed"):
+        lines += ["", "## Missed gold requirements", ""]
+        lines += [f"- {m['gold']} (p{m['page']}): {m['quote'][:110]}" for m in report["missed"]]
+    if report.get("not_in_gold"):
+        lines += ["", "## Extracted but not in the gold set", ""]
+        lines += [f"- {r['id']} (p{r['page']}): {r['quote'][:110]}" for r in report["not_in_gold"]]
     if report["wrong_status"]:
         lines += ["", "## Status mismatches", ""]
         lines += [f"- {w['gold']}: got `{w['got']}`, expected {w['expected']}" for w in report["wrong_status"]]

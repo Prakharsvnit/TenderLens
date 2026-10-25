@@ -5,6 +5,7 @@ The same events feed the app's Trace tab, the orchestration evals and the cost g
 
 from __future__ import annotations
 
+import json
 import threading
 import time
 from contextlib import contextmanager
@@ -27,6 +28,7 @@ class TraceEvent(BaseModel):
     cost_usd: float = 0.0
     latency_ms: int = 0
     detail: str = ""
+    args: str = ""  # tool_call only: the call's arguments, so evals can spot repeated calls
     at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
 
 
@@ -69,6 +71,12 @@ class Tracer:
 
     def record_messages(self, agent: str, messages: list[BaseMessage]) -> None:
         """Turn an agent's message history into model_call and tool_call events."""
+        args = {
+            tc["id"]: json.dumps(tc["args"], sort_keys=True)[:300]
+            for m in messages
+            if isinstance(m, AIMessage)
+            for tc in m.tool_calls or []
+        }
         for message in messages:
             if isinstance(message, AIMessage):
                 usage = message.usage_metadata or {}
@@ -93,6 +101,7 @@ class Tracer:
                     "tool_call",
                     name=message.name or "",
                     detail=str(message.content)[:300],
+                    args=args.get(message.tool_call_id, ""),
                 )
 
     @property
