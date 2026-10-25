@@ -13,29 +13,40 @@ from ..ontology import category_definitions
 from ..ontology.models import RFP, Category, EvaluationCriterion, Obligation, Requirement
 from ..parsing import ScanHit, normalize, scan_modal_verbs
 from ..trace import Tracer
-from .common import human_text, response_tool, run_agent, tool_results
+from .common import human_text, response_tool, run_agent
 from .schemas import AnalystOutput, CriteriaOutput, ExtractedRequirement
 
-PAGES_PER_BATCH = 3
-PARALLEL_READERS = 3
+PAGES_PER_BATCH = 1  # Nova Pro skipped whole pages of narrative when it read three at once
+PARALLEL_READERS = 4
 
 SYSTEM = """You are the RFP Analyst on a bid team. You read pages of a public RFP and extract every atomic
 requirement that the bidder (called Contractor, Proposer, Vendor, Respondent or Bidder) must satisfy or
 address in its proposal.
 
 Rules:
-- quote: copy the requirement word for word from the page, one sentence or clause of 8 to 300 characters.
-  Never paraphrase a quote; it is checked character by character against the PDF.
-- One requirement per obligation. Split a sentence that contains several distinct obligations.
-- Skip the buyer's own obligations, background narrative and boilerplate that asks nothing of the bidder.
+- quote: copy the requirement word for word from the page, one sentence, clause or list item of 8 to 300
+  characters. Never paraphrase a quote; it is checked character by character against the PDF.
+- One requirement per obligation. Split a sentence or list that contains several distinct obligations.
+- Requirements are not only shall/must sentences. Also extract:
+  - each item of a list introduced by a requirement ("The proposal must include:", "Services include:"),
+    quoting the item itself;
+  - each service or capability the buyer says it needs in a statement of need or scope;
+  - questions the proposal must answer ("Do you provide a toll-free number?");
+  - rules phrased with the buyer as subject that bind the bidder ("The City shall be the named owner");
+  - minimum amounts and thresholds ("shall not be less than $1,000,000");
+  - warnings that lead to disqualification or ineligibility ("may be disqualified", "may not participate").
+- Skip the buyer's own internal steps, background narrative, lead-in fragments that end with a colon, and
+  boilerplate that asks nothing the bidder can act on or evidence (proposal costs are the bidder's, submissions
+  become public records, "nothing herein shall be construed").
 - obligation: mandatory for shall, must, required or will be expected; desirable for should, may or requested.
 - critical: true only when failing it disqualifies the bid or voids the contract (pass/fail): mandatory
   meetings, submission deadlines, required certifications or security clearances, minimum insurance,
-  debarment, licences.
+  debarment, licences, disqualification warnings.
 - category: one of these
 {categories}
 - criterion: the exact name of the evaluation criterion the requirement feeds, or null. Criteria: {criteria}
-- Before answering, call scan_modal_verbs for each page to check you have not missed a shall/must statement."""
+- A rule-based scanner lists the page's shall/must sentences. Make sure each one is covered by a requirement
+  unless it falls under the skip rule above. Call get_section only if you need a neighbouring page for context."""
 
 CRITERIA_SYSTEM = """You read the evaluation section of an RFP and list every scored evaluation criterion with
 its maximum points, exactly as the RFP names them. Return an empty list if the RFP gives no points."""
@@ -93,8 +104,6 @@ def _stub_requirement(hit: ScanHit, criteria: list[EvaluationCriterion]) -> dict
 
 def _analyst_stub(rfp: RFP, batch: list, criteria: list[EvaluationCriterion]):
     def script(messages, tool_names):
-        if not tool_results(messages):
-            return AIMessage("", tool_calls=[_call("scan_modal_verbs", {"section_id": s.id}) for s in batch])
         hits = scan_modal_verbs(batch)
         payload = {"requirements": [_stub_requirement(h, criteria) for h in hits]}
         return AIMessage("", tool_calls=[_call(response_tool(AnalystOutput, tool_names), payload)])
@@ -150,14 +159,6 @@ def extract_requirements(
     system = SYSTEM.format(categories=categories, criteria=names)
 
     @tool
-    def scan_modal_verbs(section_id: str) -> str:
-        """Rule-based scan of one page for shall/must/required statements aimed at the bidder."""
-        section = pages.get(section_id)
-        if not section:
-            return "unknown section"
-        return json.dumps([h.sentence for h in scan_modal_verbs_impl([section])])
-
-    @tool
     def get_section(section_id: str) -> str:
         """Full text of one page, e.g. to read context from a neighbouring page."""
         section = pages.get(section_id)
@@ -165,12 +166,14 @@ def extract_requirements(
 
     def read(batch: list) -> list[ExtractedRequirement]:
         text = "\n\n".join(f'<rfp section="{s.id}" page="{s.page_start}">\n{s.text}\n</rfp>' for s in batch)
+        # The scanner runs in code and its hits go into the prompt, so the agent needs no turn to call it.
+        hits = json.dumps([h.sentence for h in scan_modal_verbs_impl(batch)], indent=1)
         return run_agent(
             name="rfp_analyst",
             kind="pro",
             system_prompt=system,
-            tools=[scan_modal_verbs, get_section],
-            prompt=f"Extract every bidder requirement from these pages.\n\n{text}",
+            tools=[get_section],
+            prompt=f"Extract every bidder requirement from this page.\n\n{text}\n\nScanner hits:\n<rfp>\n{hits}\n</rfp>",
             schema=AnalystOutput,
             tracer=tracer,
             stub=_analyst_stub(rfp, batch, criteria),

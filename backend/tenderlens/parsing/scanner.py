@@ -12,11 +12,12 @@ from dataclasses import dataclass
 from ..ontology.models import Section
 
 _MODAL = re.compile(
-    r"\b(shall|must|is required|are required|will be required|mandatory|required to|will be expected to)\b",
+    r"\b(shall|must|is required|are required|will be required|mandatory|required to|will be expected to|"
+    r"may not|disqualified)\b",
     re.IGNORECASE,
 )
 _BIDDER = re.compile(
-    r"\b(contractor|vendor|proposer|respondent|bidder|firm|company|consultant|proposals?|bids?|submittals?|"
+    r"\b(contractors?|vendors?|proposers?|respondents?|bidders?|firms?|company|consultants?|proposals?|bids?|submittals?|"
     r"each submission|attendance)\b",
     re.IGNORECASE,
 )
