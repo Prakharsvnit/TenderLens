@@ -64,7 +64,7 @@ The decision itself is computed in code from the policy, not by the model, so th
 ## 6. Publish and use
 
 - **Matrix (XLSX)**: the compliance matrix, a gaps sheet and the decision with its score lines, ready for the bid team.
-- **Draft (DOCX)**: the cited first draft, with unsupported claims marked for a subject expert.
+- **Draft (DOCX)**: the cited first draft. Unsupported claims are shown in red, and gaps the writer could not fill appear as "[SME INPUT NEEDED]" placeholders for a subject expert.
 - Typical next steps outside TenderLens: assign each gap an owner, send the clarification questions before the RFP's deadline for questions, approach teaming partners, and have experts finish the draft.
 
 ## Looking under the hood
