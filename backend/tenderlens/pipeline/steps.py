@@ -143,9 +143,9 @@ def extract(event: dict) -> dict:
                 possible_misses=misses,
             )
         )
+        # The checkpoint step sets awaiting_confirmation once it has stored the resume token.
         store.update_run(
             run_id,
-            status="awaiting_confirmation",
             requirement_count=len(requirements),
             critical_count=sum(r.critical for r in requirements),
             possible_misses=len(misses),
@@ -306,9 +306,9 @@ def decide(event: dict) -> dict:
             tracer,
         )
         store.put_message(BidRecommendation(run_id=run_id, produced_by="bid_strategist", decision=decision))
+        # The checkpoint step sets awaiting_approval once it has stored the resume token.
         store.update_run(
             run_id,
-            status="awaiting_approval",
             decision=decision.decision.value,
             score_pct=decision.score_pct,
             approval_requested_at=_now(),

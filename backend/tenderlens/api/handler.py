@@ -170,10 +170,14 @@ def get_audit(run_id: str):
     return {"events": store.get_json(key) if store.exists(key) else []}
 
 
-def _resume(run: dict, kind: str) -> None:
+def _token(run: dict, kind: str, status: str) -> str:
     token = run.get(f"{kind}_token")
-    if not token:
-        raise BadRequestError(f"this run is not waiting for {kind}")
+    if run.get("status") != status or not token:
+        raise BadRequestError(f"this run is not waiting for {kind}; refresh and try again")
+    return token
+
+
+def _resume(run: dict, kind: str, token: str) -> None:
     get_store().update_run(run["run_id"], **{f"{kind}_token": ""})
     get_orchestrator().resume(token, {kind: True})
 
@@ -181,19 +185,17 @@ def _resume(run: dict, kind: str) -> None:
 @app.post("/runs/<run_id>/confirm")
 def confirm(run_id: str):
     run = _run(run_id)
-    if run.get("status") != "awaiting_confirmation":
-        raise BadRequestError("this run is not waiting for confirmation")
+    token = _token(run, "confirm", "awaiting_confirmation")
     edits = (app.current_event.json_body or {}).get("edits", [])
     steps.record_confirmation(run_id, _user(), edits)
-    _resume(run, "confirm")
+    _resume(run, "confirm", token)
     return {"ok": True}
 
 
 @app.post("/runs/<run_id>/approve")
 def approve(run_id: str):
     run = _run(run_id)
-    if run.get("status") != "awaiting_approval":
-        raise BadRequestError("this run is not waiting for approval")
+    token = _token(run, "approve", "awaiting_approval")
     body = app.current_event.json_body or {}
     try:
         approval = Approval(
@@ -205,7 +207,7 @@ def approve(run_id: str):
     except ValueError as exc:
         raise BadRequestError(str(exc)) from exc
     steps.record_approval(run_id, approval)
-    _resume(run, "approve")
+    _resume(run, "approve", token)
     return {"ok": True}
 
 
