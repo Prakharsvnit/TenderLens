@@ -2,6 +2,7 @@ import { Bot, ShieldCheck, Wrench } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Card, Chip, Empty, cx, usd } from '../../components/ui'
 import type { TraceEvent } from '../../types'
+import { Timeline } from './Timeline'
 
 const AGENTS: Record<string, string> = {
   rfp_analyst: 'RFP Analyst',
@@ -20,9 +21,18 @@ const KIND_STYLE: Record<string, string> = {
   error: 'bg-rose-50 text-rose-700 ring-rose-600/20',
 }
 
+const KINDS = [
+  ['all', 'All events'],
+  ['model_call', 'Model calls'],
+  ['tool_call', 'Tool calls'],
+  ['validation', 'Checks'],
+  ['guardrail', 'Guardrails'],
+] as const
+
 /** Every model call, tool call and validation, per agent: the observability view of the run. */
 export function TraceTab({ events }: { events: TraceEvent[] }) {
   const [agent, setAgent] = useState<string>('all')
+  const [kind, setKind] = useState<string>('all')
   const summary = useMemo(() => {
     const by: Record<string, { model: number; tools: number; tokens: number; cost: number; ms: number; checks: number }> = {}
     for (const e of events) {
@@ -40,7 +50,12 @@ export function TraceTab({ events }: { events: TraceEvent[] }) {
   }, [events])
   if (events.length === 0) return <Empty>No trace yet.</Empty>
 
-  const shown = events.filter((e) => e.kind !== 'agent_start' && (agent === 'all' || e.agent === agent))
+  const shown = events.filter(
+    (e) =>
+      e.kind !== 'agent_start' &&
+      (agent === 'all' || e.agent === agent) &&
+      (kind === 'all' || e.kind === kind),
+  )
   return (
     <div className="space-y-5">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -61,6 +76,18 @@ export function TraceTab({ events }: { events: TraceEvent[] }) {
             </dl>
           </button>
         ))}
+      </div>
+
+      <Timeline events={events} />
+
+      <div className="flex flex-wrap items-center gap-1.5">
+        {KINDS.map(([id, label]) => (
+          <button key={id} onClick={() => setKind(id)}
+            className={cx('rounded-full px-3 py-1 text-xs font-medium ring-1 ring-inset transition', kind === id ? 'bg-brand-600 text-white ring-brand-600' : 'bg-white text-slate-600 ring-slate-200 hover:ring-slate-300')}>
+            {label}
+          </button>
+        ))}
+        <span className="ml-auto text-xs text-slate-500 tabular">{shown.length} events</span>
       </div>
 
       <Card className="overflow-x-auto">
@@ -87,7 +114,14 @@ export function TraceTab({ events }: { events: TraceEvent[] }) {
                   </Chip>
                   {e.name && <div className="mt-0.5 font-mono text-[11px] text-slate-500">{e.name}</div>}
                 </td>
-                <td className="max-w-lg px-3 py-2 text-xs text-slate-600 break-words">{e.detail}</td>
+                <td className="max-w-lg px-3 py-2 text-xs text-slate-600 break-words">
+                  {e.args && (
+                    <div className="mb-1 rounded bg-slate-50 px-1.5 py-1 font-mono text-[11px] text-slate-700">
+                      {e.args}
+                    </div>
+                  )}
+                  {e.detail}
+                </td>
                 <td className="px-3 py-2 text-right tabular text-slate-600">{e.tokens_in + e.tokens_out || ''}</td>
                 <td className="px-3 py-2 text-right tabular text-slate-600">{e.latency_ms || ''}</td>
               </tr>
