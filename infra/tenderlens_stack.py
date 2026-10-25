@@ -130,6 +130,10 @@ class TenderLensStack(Stack):
             account_recovery=cognito.AccountRecovery.NONE,
             removal_policy=RemovalPolicy.DESTROY,
         )
+        cognito.CfnUserPoolGroup(
+            self, "Viewers", user_pool_id=users.user_pool_id, group_name="viewers",
+            description="Can open shared runs but not start or act on runs",
+        )
         client = users.add_client(
             "Web", auth_flows=cognito.AuthFlow(user_srp=True), generate_secret=False,
             prevent_user_existence_errors=True,

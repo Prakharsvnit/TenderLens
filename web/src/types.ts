@@ -172,4 +172,5 @@ export interface ApiConfig {
   live_until: string | null
   daily_cap: number
   user: string
+  viewer?: boolean
 }

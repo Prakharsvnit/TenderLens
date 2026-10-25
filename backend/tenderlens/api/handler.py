@@ -9,7 +9,12 @@ from datetime import UTC, date, datetime
 
 from aws_lambda_powertools import Logger
 from aws_lambda_powertools.event_handler import APIGatewayHttpResolver, CORSConfig
-from aws_lambda_powertools.event_handler.exceptions import BadRequestError, NotFoundError, UnauthorizedError
+from aws_lambda_powertools.event_handler.exceptions import (
+    BadRequestError,
+    ForbiddenError,
+    NotFoundError,
+    UnauthorizedError,
+)
 
 from ..config import get_settings
 from ..ontology.models import (
@@ -46,6 +51,19 @@ def _user() -> str:
     if not user:
         raise UnauthorizedError("not signed in")
     return user
+
+
+def _viewer() -> bool:
+    """Members of the Cognito "viewers" group can open shared runs but not start or act on runs."""
+    claims = app.current_event.request_context.authorizer.jwt_claim or {}
+    return "viewers" in str(claims.get("cognito:groups", ""))
+
+
+def _owned(run_id: str) -> dict:
+    run = _run(run_id)
+    if run.get("owner") != _user():
+        raise ForbiddenError("only the person who started this run can act on it")
+    return run
 
 
 def _param(name: str, default: str) -> str:
@@ -98,7 +116,10 @@ def _public(run: dict) -> dict:
 
 @app.get("/config")
 def config():
-    return {**_live_status(), "user": _user()}
+    status = _live_status()
+    if _viewer():
+        status["live_runs"] = False
+    return {**status, "user": _user(), "viewer": _viewer()}
 
 
 @app.get("/runs")
@@ -111,6 +132,8 @@ def list_runs():
 @app.post("/runs")
 def create_run():
     body = app.current_event.json_body or {}
+    if _viewer():
+        raise ForbiddenError("This login can view shared runs but not start new ones.")
     if not _live_status()["live_runs"]:
         raise BadRequestError("Live runs are switched off. Past runs are still available.")
     store = get_store()
@@ -133,7 +156,7 @@ def create_run():
 
 @app.post("/runs/<run_id>/start")
 def start_run(run_id: str):
-    run = _run(run_id)
+    run = _owned(run_id)
     if run.get("status") != "uploading":
         raise BadRequestError("run already started")
     started = datetime.now(UTC).isoformat()
@@ -184,7 +207,7 @@ def _resume(run: dict, kind: str, token: str) -> None:
 
 @app.post("/runs/<run_id>/confirm")
 def confirm(run_id: str):
-    run = _run(run_id)
+    run = _owned(run_id)
     token = _token(run, "confirm", "awaiting_confirmation")
     edits = (app.current_event.json_body or {}).get("edits", [])
     steps.record_confirmation(run_id, _user(), edits)
@@ -194,7 +217,7 @@ def confirm(run_id: str):
 
 @app.post("/runs/<run_id>/approve")
 def approve(run_id: str):
-    run = _run(run_id)
+    run = _owned(run_id)
     token = _token(run, "approve", "awaiting_approval")
     body = app.current_event.json_body or {}
     try:

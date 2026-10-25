@@ -50,7 +50,10 @@ function NewRun({ live }: { live: ApiConfig | null }) {
       </div>
       {disabled && (
         <p className="mt-3 flex items-center gap-1.5 text-sm text-amber-700">
-          <Info className="h-4 w-4" /> Live runs are switched off. Past runs below are still available.
+          <Info className="h-4 w-4" />
+          {live?.viewer
+            ? 'This login can view the shared runs below but not start new ones.'
+            : 'Live runs are switched off. Past runs below are still available.'}
         </p>
       )}
       {live && live.live_runs && (
