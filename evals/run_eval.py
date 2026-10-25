@@ -3,6 +3,7 @@
     cd backend
     uv run python ../evals/run_eval.py --pdf ../data/rfps/belle-isle-rfp-2026-04.pdf   # fresh local run, then score
     uv run python ../evals/run_eval.py --run-id <id>                                    # score an existing local run
+    uv run python ../evals/run_eval.py --latest                                         # score the newest complete run
 
 Writes evals/reports/<run_id>.md and .json. Each fresh run calls the models, so run it on demand, not in CI.
 """
@@ -175,9 +176,15 @@ def main() -> None:
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--run-id")
     group.add_argument("--pdf", type=Path)
+    group.add_argument("--latest", action="store_true", help="score the newest complete run")
     parser.add_argument("--gold", type=Path, default=ROOT / "gold" / "belle-isle.yaml")
     args = parser.parse_args()
     run_id = args.run_id
+    if args.latest:
+        complete = [r for r in get_store().list_runs() if r.get("status") == "complete"]
+        if not complete:
+            raise SystemExit("no complete runs found")
+        run_id = complete[0]["run_id"]
     if args.pdf:
         from tenderlens.config import get_settings
         from tenderlens.pipeline import local
