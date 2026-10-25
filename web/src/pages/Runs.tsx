@@ -91,49 +91,56 @@ export function RunsPage() {
       ) : runs.length === 0 ? (
         <Empty>No runs yet. Upload an RFP to start.</Empty>
       ) : (
-        <Card className="overflow-hidden">
-          <table className="min-w-full divide-y divide-slate-200 text-sm">
-            <thead className="bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
-              <tr>
-                <th className="px-4 py-3">RFP</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Recommendation</th>
-                <th className="hidden px-4 py-3 md:table-cell">Requirements</th>
-                <th className="hidden px-4 py-3 md:table-cell">Cost</th>
-                <th className="hidden px-4 py-3 lg:table-cell">Started</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {runs.map((run) => (
-                <tr key={run.run_id} className="hover:bg-slate-50">
-                  <td className="px-4 py-3">
-                    <Link to={`/runs/${run.run_id}`} className="font-medium text-slate-900 hover:text-brand-700">
-                      {run.buyer ?? run.rfp_name ?? run.run_id}
-                    </Link>
-                    <div className="text-xs text-slate-500">{run.rfp_title ?? run.rfp_name}</div>
-                  </td>
-                  <td className="px-4 py-3"><RunStatusChip status={run.status} /></td>
-                  <td className="px-4 py-3">
-                    {run.final_decision || run.decision ? (
-                      <span className="flex items-center gap-2">
-                        <DecisionBadge decision={(run.final_decision ?? run.decision)!} />
-                        <span className="text-xs text-slate-500 tabular">{pct(run.score_pct)}</span>
-                      </span>
-                    ) : (
-                      <span className="text-slate-400">—</span>
-                    )}
-                  </td>
-                  <td className="hidden px-4 py-3 tabular md:table-cell">{run.requirement_count ?? '—'}</td>
-                  <td className="hidden px-4 py-3 tabular md:table-cell">{usd(run.cost_usd)}</td>
-                  <td className="hidden px-4 py-3 text-slate-500 lg:table-cell">
-                    {new Date(run.started_at ?? run.created_at).toLocaleString()}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Card>
+        <RunTable runs={runs} base="/runs" />
       )}
     </div>
+  )
+}
+
+/** The runs table, shared by the signed-in runs page and the public demo page. */
+export function RunTable({ runs, base }: { runs: Run[]; base: string }) {
+  return (
+    <Card className="overflow-hidden">
+      <table className="min-w-full divide-y divide-slate-200 text-sm">
+        <thead className="bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
+          <tr>
+            <th className="px-4 py-3">RFP</th>
+            <th className="px-4 py-3">Status</th>
+            <th className="px-4 py-3">Recommendation</th>
+            <th className="hidden px-4 py-3 md:table-cell">Requirements</th>
+            <th className="hidden px-4 py-3 md:table-cell">Cost</th>
+            <th className="hidden px-4 py-3 lg:table-cell">Started</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100">
+          {runs.map((run) => (
+            <tr key={run.run_id} className="hover:bg-slate-50">
+              <td className="px-4 py-3">
+                <Link to={`${base}/${run.run_id}`} className="font-medium text-slate-900 hover:text-brand-700">
+                  {run.buyer ?? run.rfp_name ?? run.run_id}
+                </Link>
+                <div className="text-xs text-slate-500">{run.rfp_title ?? run.rfp_name}</div>
+              </td>
+              <td className="px-4 py-3"><RunStatusChip status={run.status} /></td>
+              <td className="px-4 py-3">
+                {run.final_decision || run.decision ? (
+                  <span className="flex items-center gap-2">
+                    <DecisionBadge decision={(run.final_decision ?? run.decision)!} />
+                    <span className="text-xs text-slate-500 tabular">{pct(run.score_pct)}</span>
+                  </span>
+                ) : (
+                  <span className="text-slate-400">—</span>
+                )}
+              </td>
+              <td className="hidden px-4 py-3 tabular md:table-cell">{run.requirement_count ?? '—'}</td>
+              <td className="hidden px-4 py-3 tabular md:table-cell">{usd(run.cost_usd)}</td>
+              <td className="hidden px-4 py-3 text-slate-500 lg:table-cell">
+                {new Date(run.started_at ?? run.created_at).toLocaleString()}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </Card>
   )
 }

@@ -1,25 +1,29 @@
 import { ArrowLeft, Download, TriangleAlert } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { api } from '../api'
+import { api, publicApi, type RunReader } from '../api'
 import { EvidencePanel } from '../components/EvidencePanel'
 import { StepTracker } from '../components/StepTracker'
 import { Button, Card, RunStatusChip, Spinner, Tabs } from '../components/ui'
 import type { Evidence, RunView, TraceEvent } from '../types'
+import { ArchitectureTab } from './run/ArchitectureTab'
 import { ApproveBanner, ConfirmBanner } from './run/Checkpoints'
 import { DecisionTab } from './run/DecisionTab'
 import { DraftTab } from './run/DraftTab'
 import { GapsTab } from './run/GapsTab'
 import { MatrixTab } from './run/MatrixTab'
 import { OverviewTab } from './run/OverviewTab'
+import { QualityTab } from './run/QualityTab'
 import { RequirementsTab } from './run/RequirementsTab'
 import { TraceTab } from './run/TraceTab'
 
-type TabId = 'overview' | 'requirements' | 'matrix' | 'gaps' | 'draft' | 'decision' | 'trace'
+type TabId = 'overview' | 'architecture' | 'requirements' | 'matrix' | 'gaps' | 'draft' | 'decision' | 'trace' | 'quality'
 const ACTIVE = new Set(['uploading', 'queued', 'running', 'awaiting_confirmation', 'awaiting_approval'])
 
-export function RunPage() {
+/** One run. In public mode it reads the shared-run API without signing in and hides every action. */
+export function RunPage({ publicMode = false }: { publicMode?: boolean }) {
   const { runId = '' } = useParams()
+  const reader: RunReader = publicMode ? publicApi : api
   const [view, setView] = useState<RunView | null>(null)
   const [trace, setTrace] = useState<TraceEvent[]>([])
   const [tab, setTab] = useState<TabId>('overview')
@@ -29,13 +33,13 @@ export function RunPage() {
 
   const load = useCallback(async () => {
     try {
-      const [v, t] = await Promise.all([api.run(runId), api.trace(runId)])
+      const [v, t] = await Promise.all([reader.run(runId), reader.trace(runId)])
       setView(v)
       setTrace(t)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not load the run')
     }
-  }, [runId])
+  }, [runId, reader])
 
   useEffect(() => {
     load()
@@ -63,12 +67,12 @@ export function RunPage() {
   const claims = view.DraftMessage?.sections.reduce((n, s) => n + s.claims.length, 0)
 
   async function download(kind: 'matrix' | 'draft') {
-    window.open(await api.exportUrl(runId, kind), '_blank')
+    window.open(await reader.exportUrl(runId, kind), '_blank')
   }
 
   return (
     <div className="space-y-5">
-      <Link to="/" className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-800">
+      <Link to={publicMode ? '/demo' : '/'} className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-800">
         <ArrowLeft className="h-4 w-4" /> All runs
       </Link>
 
@@ -108,10 +112,10 @@ export function RunPage() {
           </div>
         </Card>
       )}
-      {run.status === 'awaiting_confirmation' && view.RequirementSet && (
+      {!publicMode && run.status === 'awaiting_confirmation' && view.RequirementSet && (
         <ConfirmBanner view={view} edits={edits} onDone={() => { setEdits({}); load() }} onReview={() => setTab('requirements')} />
       )}
-      {run.status === 'awaiting_approval' && view.BidRecommendation && (
+      {!publicMode && run.status === 'awaiting_approval' && view.BidRecommendation && (
         <ApproveBanner view={view} onDone={load} onReview={() => setTab('decision')} />
       )}
 
@@ -120,24 +124,28 @@ export function RunPage() {
         onChange={setTab}
         tabs={[
           { id: 'overview', label: 'Overview' },
+          { id: 'architecture', label: 'Architecture' },
           { id: 'requirements', label: 'Requirements', count: reqs.length || undefined },
           { id: 'matrix', label: 'Compliance matrix' },
           { id: 'gaps', label: 'Gaps', count: gaps.length || undefined },
           { id: 'draft', label: 'Draft', count: claims || undefined },
           { id: 'decision', label: 'Decision' },
           { id: 'trace', label: 'Agent trace', count: trace.length || undefined },
+          { id: 'quality', label: 'Quality & controls' },
         ]}
       />
 
       {tab === 'overview' && <OverviewTab view={view} trace={trace} />}
       {tab === 'requirements' && (
-        <RequirementsTab view={view} editable={run.status === 'awaiting_confirmation'} edits={edits} setEdits={setEdits} />
+        <RequirementsTab view={view} editable={!publicMode && run.status === 'awaiting_confirmation'} edits={edits} setEdits={setEdits} />
       )}
       {tab === 'matrix' && <MatrixTab view={view} onEvidence={openEvidence} />}
       {tab === 'gaps' && <GapsTab view={view} />}
       {tab === 'draft' && <DraftTab view={view} onEvidence={openEvidence} />}
       {tab === 'decision' && <DecisionTab view={view} onEvidence={openEvidence} />}
       {tab === 'trace' && <TraceTab events={trace} />}
+      {tab === 'architecture' && <ArchitectureTab run={run} trace={trace} />}
+      {tab === 'quality' && <QualityTab view={view} trace={trace} canEvaluate={!publicMode} onEvaluated={load} />}
 
       <EvidencePanel evidence={evidence} onClose={() => setEvidence(null)} />
     </div>
