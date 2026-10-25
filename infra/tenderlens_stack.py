@@ -68,7 +68,7 @@ class TenderLensStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
         confirm_timeout = int(self.node.try_get_context("confirmTimeoutSeconds") or 120)
-        daily_cap = str(self.node.try_get_context("dailyRunCap") or 3)
+        daily_cap = str(self.node.try_get_context("dailyRunCap") or 5)
 
         # --- Storage ------------------------------------------------------------------------------
         data = s3.Bucket(

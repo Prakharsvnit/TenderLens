@@ -38,7 +38,7 @@ cors = CORSConfig(
 )
 app = APIGatewayHttpResolver(cors=cors)
 
-DAILY_CAP = int(os.environ.get("TL_DAILY_RUN_CAP", "3"))
+DAILY_CAP = int(os.environ.get("TL_DAILY_RUN_CAP", "5"))
 DEV_BASE_URL = os.environ.get("TL_DEV_BASE_URL", "http://localhost:8787")
 MESSAGES = (RequirementSet, AssessmentBatch, DraftMessage, ClaimVerdicts, BidRecommendation)
 
