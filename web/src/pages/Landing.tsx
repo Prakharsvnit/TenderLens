@@ -22,7 +22,7 @@ import { Card, cx, duration, pct, usd } from '../components/ui'
 import type { Run } from '../types'
 
 /** YouTube id of the unlisted demo video; the video section stays hidden until it is set. */
-const VIDEO_ID = ''
+const VIDEO_ID = '_0t3wSdONGo'
 
 const PROBLEMS = [
   { icon: <Clock className="h-5 w-5" />, title: 'Reading takes days', body: 'A 26-page RFP hides 100+ obligations across scope, legal terms and forms.' },

@@ -4,7 +4,7 @@ TenderLens is an RFP response and compliance agent. It reads a request for propo
 
 Five specialist agents, built with LangGraph on Amazon Nova, do the reading, judging and writing. AWS Step Functions orchestrates them, with two human checkpoints. Everything is serverless on AWS, so the stack costs nothing while idle.
 
-> Status: v1, October 2026. The full workflow, the web app and the AWS stack are built; evals against Amazon Nova come next.
+> **Live demo:** https://d22o8t6xupq6jw.cloudfront.net · **3-minute video:** https://youtu.be/_0t3wSdONGo
 
 ## The problem
 
