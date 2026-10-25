@@ -76,7 +76,8 @@ def evaluate(run_id: str, gold_path: Path) -> dict:
     critical = [g for g in gold["requirements"] if g["critical"]]
     scored = [g for g in gold["requirements"] if g["expected_status"] and g["id"] in matched]
     correct = [g for g in scored if status.get(matched[g["id"]]) in g["expected_status"]]
-    precise = [r for r in extracted if any(_matches(g["quote"], r.quote) for g in gold["requirements"])]
+    valid = [g["quote"] for g in gold["requirements"]] + gold.get("also_valid", [])
+    precise = [r for r in extracted if any(_matches(q, r.quote) for q in valid)]
 
     evidence_ok, evidence_total = 0, 0
     known = {e.id for e in assessed.evidence} if assessed else set()
@@ -179,7 +180,7 @@ def to_markdown(report: dict) -> str:
         lines += ["", "## Missed gold requirements", ""]
         lines += [f"- {m['gold']} (p{m['page']}): {m['quote'][:110]}" for m in report["missed"]]
     if report.get("not_in_gold"):
-        lines += ["", "## Extracted but not in the gold set", ""]
+        lines += ["", "## Extracted but not a valid requirement in the gold set", ""]
         lines += [f"- {r['id']} (p{r['page']}): {r['quote'][:110]}" for r in report["not_in_gold"]]
     if report["wrong_status"]:
         lines += ["", "## Status mismatches", ""]
