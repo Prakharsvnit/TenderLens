@@ -292,7 +292,9 @@ def _redact(data, run: dict):
 
 @app.get("/public/runs")
 def public_runs():
-    runs = [r for r in get_store().list_runs() if r.get("shared") and not str(r.get("run_id", "")).startswith("_")]
+    runs = [
+        r for r in get_store().list_runs() if r.get("shared") and not str(r.get("run_id", "")).startswith("_")
+    ]
     return {"runs": [_redact(_public(r), r) for r in runs]}
 
 

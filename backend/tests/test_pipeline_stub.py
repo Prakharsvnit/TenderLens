@@ -30,7 +30,9 @@ def test_full_run_offline(belle_isle_pdf, tmp_path):
         "bid_strategist",
     } <= agents
     tools = {e["name"] for e in store.get_trace("t1") if e["kind"] == "tool_call"}
-    assert {"scan_modal_verbs", "search_evidence", "list_gaps", "compute_score"} <= tools
+    assert {"search_evidence", "list_gaps", "compute_score"} <= tools
+    checks = {e["name"] for e in store.get_trace("t1") if e["kind"] == "validation"}
+    assert "extraction" in checks  # the scanner runs in code and the Analyst's output is checked against it
     kpis = result["kpis"]
     assert 0 < kpis["requirement_coverage"] <= 1
     assert kpis["evidence_backed_claim_rate"] > 0.5

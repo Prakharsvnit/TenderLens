@@ -94,8 +94,16 @@ def evaluate(run_id: str, gold_path: Path) -> dict:
         if e["kind"] == "tool_call" and not str(e["detail"]).startswith("Returning structured response")
     ]
     duplicates = sum(n - 1 for n in Counter(tool_calls).values() if n > 1)
-    per_agent: dict[str, dict] = defaultdict(lambda: {"model_calls": 0, "tool_calls": 0, "tokens": 0, "cost_usd": 0.0,
-                                                     "seconds": 0.0, "validations": 0})
+    per_agent: dict[str, dict] = defaultdict(
+        lambda: {
+            "model_calls": 0,
+            "tool_calls": 0,
+            "tokens": 0,
+            "cost_usd": 0.0,
+            "seconds": 0.0,
+            "validations": 0,
+        }
+    )
     for e in trace:
         s = per_agent[e["agent"]]
         if e["kind"] == "model_call":
@@ -131,17 +139,24 @@ def evaluate(run_id: str, gold_path: Path) -> dict:
         "expected_decision": gold.get("expected_decision"),
         "score_pct": rec.decision.score_pct if rec else None,
         "missed_critical": [g["id"] for g in critical if g["id"] not in matched],
-        "missed": [{"gold": g["id"], "page": g.get("page"), "quote": g["quote"]}
-                   for g in gold["requirements"] if g["id"] not in matched],
-        "not_in_gold": [{"id": r.id, "page": r.page, "quote": r.quote}
-                        for r in extracted if r not in precise],
+        "missed": [
+            {"gold": g["id"], "page": g.get("page"), "quote": g["quote"]}
+            for g in gold["requirements"]
+            if g["id"] not in matched
+        ],
+        "not_in_gold": [
+            {"id": r.id, "page": r.page, "quote": r.quote} for r in extracted if r not in precise
+        ],
         "wrong_status": [
             {"gold": g["id"], "got": status.get(matched[g["id"]]), "expected": g["expected_status"]}
-            for g in scored if g not in correct
+            for g in scored
+            if g not in correct
         ],
         "handoff_errors": handoff_errors,
-        "per_agent": {k: {**v, "cost_usd": round(v["cost_usd"], 5), "seconds": round(v["seconds"], 1)}
-                      for k, v in per_agent.items()},
+        "per_agent": {
+            k: {**v, "cost_usd": round(v["cost_usd"], 5), "seconds": round(v["seconds"], 1)}
+            for k, v in per_agent.items()
+        },
         "kpis": run.get("kpis"),
         "llm_mode": run.get("llm_mode"),
     }
@@ -157,20 +172,32 @@ def to_markdown(report: dict) -> str:
         f"# Eval report: run `{report['run_id']}` on {report['rfp']}",
         "",
         f"Decision: **{report['decision']}** (expected {report['expected_decision']}), "
-        f"score {report['score_pct']:.0%}." if report["score_pct"] is not None else "No decision.",
+        f"score {report['score_pct']:.0%}."
+        if report["score_pct"] is not None
+        else "No decision.",
         "",
         "| Metric | Value | Target | Result |",
         "| --- | --- | --- | --- |",
     ]
     for name, value in report["metrics"].items():
         sign = "≤" if name == "redundant_tool_call_rate" else "≥"
-        lines.append(f"| {name.replace('_', ' ')} | {value:.0%} | {sign} {TARGETS[name]:.0%} | {mark(name, value)} |")
-    lines += ["", f"Rewrite rounds: {report['rewrite_rounds']}", "", "## Per agent", "",
-              "| Agent | Model calls | Tool calls | Validations | Tokens | Cost (USD) | Time (s) |",
-              "| --- | --- | --- | --- | --- | --- | --- |"]
+        lines.append(
+            f"| {name.replace('_', ' ')} | {value:.0%} | {sign} {TARGETS[name]:.0%} | {mark(name, value)} |"
+        )
+    lines += [
+        "",
+        f"Rewrite rounds: {report['rewrite_rounds']}",
+        "",
+        "## Per agent",
+        "",
+        "| Agent | Model calls | Tool calls | Validations | Tokens | Cost (USD) | Time (s) |",
+        "| --- | --- | --- | --- | --- | --- | --- |",
+    ]
     for agent, s in report["per_agent"].items():
-        lines.append(f"| {agent} | {s['model_calls']} | {s['tool_calls']} | {s['validations']} | {s['tokens']:,} | "
-                     f"{s['cost_usd']:.4f} | {s['seconds']} |")
+        lines.append(
+            f"| {agent} | {s['model_calls']} | {s['tool_calls']} | {s['validations']} | {s['tokens']:,} | "
+            f"{s['cost_usd']:.4f} | {s['seconds']} |"
+        )
     if report["missed_critical"]:
         lines += ["", f"Missed critical requirements: {', '.join(report['missed_critical'])}"]
     if report.get("missed"):
@@ -181,10 +208,10 @@ def to_markdown(report: dict) -> str:
         lines += [f"- {r['id']} (p{r['page']}): {r['quote'][:110]}" for r in report["not_in_gold"]]
     if report["wrong_status"]:
         lines += ["", "## Status mismatches", ""]
-        lines += [f"- {w['gold']}: got `{w['got']}`, expected {w['expected']}" for w in report["wrong_status"]]
+        lines += [
+            f"- {w['gold']}: got `{w['got']}`, expected {w['expected']}" for w in report["wrong_status"]
+        ]
     return "\n".join(lines) + "\n"
-
-
 
 
 def gold_for(run: dict) -> Path | None:

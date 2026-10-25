@@ -4,12 +4,11 @@ import json
 from types import SimpleNamespace
 
 import pytest
+from test_api import USER, call
 
 from tenderlens.api import handler
 from tenderlens.evaluation import gold_for
 from tenderlens.store import LocalStore, set_store
-
-from test_api import USER, call
 
 
 def public_get(path: str) -> tuple[int, dict]:
@@ -19,7 +18,10 @@ def public_get(path: str) -> tuple[int, dict]:
         "rawPath": path,
         "rawQueryString": "",
         "headers": {},
-        "requestContext": {"http": {"method": "GET", "path": path, "sourceIp": "127.0.0.1"}, "stage": "$default"},
+        "requestContext": {
+            "http": {"method": "GET", "path": path, "sourceIp": "127.0.0.1"},
+            "stage": "$default",
+        },
         "body": None,
         "isBase64Encoded": False,
     }
@@ -31,7 +33,9 @@ def public_get(path: str) -> tuple[int, dict]:
 def store(tmp_path):
     local = LocalStore(tmp_path)
     set_store(local)
-    local.update_run("shared1", owner=USER, approved_by=USER, status="complete", shared=True, buyer="City of Belle Isle")
+    local.update_run(
+        "shared1", owner=USER, approved_by=USER, status="complete", shared=True, buyer="City of Belle Isle"
+    )
     local.update_run("private1", owner=USER, status="complete", shared=False)
     local.put_json("runs/shared1/audit.json", [{"actor": USER, "action": "approved"}])
     return local
