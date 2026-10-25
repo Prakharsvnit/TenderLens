@@ -9,6 +9,7 @@ from typing import TypeVar
 
 from langchain.agents import create_agent
 from langchain.agents.middleware import (
+    AgentMiddleware,
     ModelCallLimitMiddleware,
     ModelRetryMiddleware,
     ToolCallLimitMiddleware,
@@ -46,6 +47,26 @@ def _parse_fallback(messages: Sequence[BaseMessage], schema: type[T]) -> T | Non
     return None
 
 
+class AnswerWhenSpent(AgentMiddleware):
+    """Once an agent has used its tool calls, or reaches its last model turn, offer only the answer tool.
+
+    Nova runs greedy, so after a "tool call limit exceeded" reply it tends to repeat the same calls until the
+    model call limit ends the run. Removing the tools leaves the structured answer as the only move.
+    """
+
+    def __init__(self, tool_limit: int, model_limit: int):
+        super().__init__()
+        self.tool_limit = tool_limit
+        self.model_limit = model_limit
+
+    def wrap_model_call(self, request, handler):
+        tools_used = sum(isinstance(m, ToolMessage) for m in request.messages)
+        turns = sum(isinstance(m, AIMessage) for m in request.messages)
+        if tools_used >= self.tool_limit or turns >= self.model_limit - 1:
+            request = request.override(tools=[])
+        return handler(request)
+
+
 def run_agent(
     *,
     name: str,
@@ -60,9 +81,12 @@ def run_agent(
     tool_calls: int | None = None,
 ) -> T:
     settings = get_settings()
+    model_limit = model_calls or settings.agent_model_calls
+    tool_limit = tool_calls or settings.agent_tool_calls
     middleware = [
-        ModelCallLimitMiddleware(run_limit=model_calls or settings.agent_model_calls, exit_behavior="end"),
-        ToolCallLimitMiddleware(run_limit=tool_calls or settings.agent_tool_calls, exit_behavior="continue"),
+        AnswerWhenSpent(tool_limit, model_limit),
+        ModelCallLimitMiddleware(run_limit=model_limit, exit_behavior="end"),
+        ToolCallLimitMiddleware(run_limit=tool_limit, exit_behavior="continue"),
     ]
     if settings.llm_mode != "stub":
         middleware.append(ModelRetryMiddleware(max_retries=3, initial_delay=2.0))
