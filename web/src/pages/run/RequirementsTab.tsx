@@ -8,11 +8,13 @@ export function RequirementsTab({
   editable,
   edits,
   setEdits,
+  onJourney,
 }: {
   view: RunView
   editable: boolean
   edits: Edits
   setEdits: (e: Edits) => void
+  onJourney: (id: string) => void
 }) {
   const set = view.RequirementSet
   if (!set) return <Empty>The RFP Analyst is still reading the RFP.</Empty>
@@ -38,7 +40,12 @@ export function RequirementsTab({
           <tbody className="divide-y divide-slate-100 align-top">
             {set.requirements.map((r) => (
               <tr key={r.id} className={edits[r.id] ? 'bg-amber-50/50' : undefined}>
-                <td className="px-3 py-2.5 font-mono text-xs text-slate-500">{r.id}</td>
+                <td className="px-3 py-2.5">
+                  <button onClick={() => onJourney(r.id)} title="See this requirement's journey"
+                    className="font-mono text-xs text-brand-700 underline decoration-dotted underline-offset-2 hover:decoration-solid">
+                    {r.id}
+                    </button>
+                </td>
                 <td className="px-3 py-2.5 tabular text-slate-500">{r.page}</td>
                 <td className="max-w-xl px-3 py-2.5 text-slate-800">
                   {r.quote}

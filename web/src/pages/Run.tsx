@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api, publicApi, type RunReader } from '../api'
 import { EvidencePanel } from '../components/EvidencePanel'
+import { RequirementJourney } from '../components/RequirementJourney'
 import { useToast } from '../components/toast'
 import { AgentTeamBar } from '../components/AgentTeamBar'
 import { Button, Card, RunStatusChip, Spinner, Tabs } from '../components/ui'
@@ -31,6 +32,7 @@ export function RunPage({ publicMode = false }: { publicMode?: boolean }) {
   const [trace, setTrace] = useState<TraceEvent[]>([])
   const [tab, setTab] = useState<TabId>('overview')
   const [evidence, setEvidence] = useState<Evidence | null>(null)
+  const [journey, setJourney] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [edits, setEdits] = useState<Record<string, Record<string, unknown>>>({})
 
@@ -143,9 +145,9 @@ export function RunPage({ publicMode = false }: { publicMode?: boolean }) {
 
       {tab === 'overview' && <OverviewTab view={view} trace={trace} />}
       {tab === 'requirements' && (
-        <RequirementsTab view={view} editable={!publicMode && run.status === 'awaiting_confirmation'} edits={edits} setEdits={setEdits} />
+        <RequirementsTab view={view} editable={!publicMode && run.status === 'awaiting_confirmation'} edits={edits} setEdits={setEdits} onJourney={setJourney} />
       )}
-      {tab === 'matrix' && <MatrixTab view={view} onEvidence={openEvidence} />}
+      {tab === 'matrix' && <MatrixTab view={view} onEvidence={openEvidence} onJourney={setJourney} />}
       {tab === 'gaps' && <GapsTab view={view} />}
       {tab === 'draft' && <DraftTab view={view} onEvidence={openEvidence} />}
       {tab === 'decision' && <DecisionTab view={view} onEvidence={openEvidence} />}
@@ -154,6 +156,7 @@ export function RunPage({ publicMode = false }: { publicMode?: boolean }) {
       {tab === 'architecture' && <ArchitectureTab run={run} trace={trace} />}
       {tab === 'quality' && <QualityTab view={view} trace={trace} canEvaluate={!publicMode} onEvaluated={load} />}
 
+      <RequirementJourney view={view} requirementId={journey} onClose={() => setJourney(null)} onEvidence={openEvidence} />
       <EvidencePanel evidence={evidence} onClose={() => setEvidence(null)} />
     </div>
   )

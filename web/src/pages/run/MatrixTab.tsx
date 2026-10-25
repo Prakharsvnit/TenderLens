@@ -2,7 +2,15 @@ import { useMemo, useState } from 'react'
 import { CATEGORY_LABEL, Card, Chip, Empty, STATUS_LABEL, StatusChip, cx } from '../../components/ui'
 import type { RunView, Status } from '../../types'
 
-export function MatrixTab({ view, onEvidence }: { view: RunView; onEvidence: (id: string) => void }) {
+export function MatrixTab({
+  view,
+  onEvidence,
+  onJourney,
+}: {
+  view: RunView
+  onEvidence: (id: string) => void
+  onJourney: (id: string) => void
+}) {
   const [filter, setFilter] = useState<Status | 'all'>('all')
   const batch = view.AssessmentBatch
   const reqs = view.RequirementSet?.requirements ?? []
@@ -38,9 +46,12 @@ export function MatrixTab({ view, onEvidence }: { view: RunView; onEvidence: (id
               const a = byReq[r.id]
               return (
                 <tr key={r.id}>
-                  <td className="px-3 py-2.5 font-mono text-xs text-slate-500">
-                    {r.id}
-                    <div className="mt-0.5 font-sans">p.{r.page}</div>
+                  <td className="px-3 py-2.5 text-xs text-slate-500">
+                    <button onClick={() => onJourney(r.id)} title="See this requirement's journey"
+                      className="font-mono text-xs text-brand-700 underline decoration-dotted underline-offset-2 hover:decoration-solid">
+                      {r.id}
+                    </button>
+                    <div className="mt-0.5">p.{r.page}</div>
                   </td>
                   <td className="max-w-md px-3 py-2.5 text-slate-800">
                     {r.quote}
