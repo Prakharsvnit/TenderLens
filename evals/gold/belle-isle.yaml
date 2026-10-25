@@ -4,6 +4,7 @@
 # step the bid team performs, not scored for status accuracy.
 
 rfp: belle-isle-rfp-2026-04
+match: Belle Isle  # a run uses this gold set when its buyer, title or file name contains this text
 bidder: cobalt-harbor
 
 evaluation_criteria:

@@ -37,7 +37,7 @@ from constructs import Construct
 
 REPO = Path(__file__).resolve().parents[1]
 CODE_EXCLUDES = [
-    ".git", ".venv", "**/.venv", "**/node_modules", "web", "infra", "runs", "docs", "evals", "scripts",
+    ".git", ".venv", "**/.venv", "**/node_modules", "web", "infra", "runs", "docs", "evals/reports", "evals/run_eval.py", "scripts",
     "**/__pycache__", "**/.pytest_cache", "**/.ruff_cache", "data/rfps", "backend/tests", "backend/uv.lock",
     "backend/requirements.txt",
 ]
@@ -324,10 +324,13 @@ class TenderLensStack(Stack):
             "Cognito", f"https://cognito-idp.{Aws.REGION}.amazonaws.com/{users.user_pool_id}",
             jwt_audience=[client.user_pool_client_id],
         )
+        api_integration = integrations.HttpLambdaIntegration("ApiIntegration", api_fn)
         http_api.add_routes(
             path="/{proxy+}", methods=[apigw.HttpMethod.GET, apigw.HttpMethod.POST],
-            integration=integrations.HttpLambdaIntegration("ApiIntegration", api_fn), authorizer=jwt,
+            integration=api_integration, authorizer=jwt,
         )
+        # The public demo: read-only GETs of shared runs, no sign-in. The handler serves only shared runs here.
+        http_api.add_routes(path="/public/{proxy+}", methods=[apigw.HttpMethod.GET], integration=api_integration)
 
         web_dist = REPO / "web" / "dist"
         sources = [s3deploy.Source.json_data("config.json", {
