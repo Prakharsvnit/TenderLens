@@ -37,7 +37,10 @@ def store(tmp_path):
         "shared1", owner=USER, approved_by=USER, status="complete", shared=True, buyer="City of Belle Isle"
     )
     local.update_run("private1", owner=USER, status="complete", shared=False)
-    local.put_json("runs/shared1/audit.json", [{"actor": USER, "action": "approved"}])
+    local.put_json(
+        "runs/shared1/audit.json",
+        [{"actor": USER, "action": "approved"}, {"actor": "colleague@example.org", "action": "confirm"}],
+    )
     return local
 
 
@@ -55,6 +58,7 @@ def test_public_view_hides_sign_in_emails(store):
     assert USER not in json.dumps(view)
     assert view["run"]["owner"] == "bid manager"
     assert view["audit"][0]["actor"] == "bid manager"
+    assert view["audit"][1]["actor"] == "bid team"  # any other email is hidden too
 
 
 def test_eval_needs_the_owner_and_a_gold_set(store):

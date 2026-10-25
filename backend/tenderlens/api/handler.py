@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import uuid
 from datetime import UTC, date, datetime
 
@@ -169,7 +170,12 @@ def start_run(run_id: str):
 def _view(run: dict) -> dict:
     """Everything the run page shows: the run record, the agents' messages, approval, audit and eval."""
     run_id, store = run["run_id"], get_store()
-    view: dict = {"run": _public(run), "limits": {"run_token_budget": get_settings().run_token_budget}}
+    settings = get_settings()
+    limits = {
+        "run_token_budget": settings.run_token_budget,
+        "grounding_threshold": settings.grounding_threshold,
+    }
+    view: dict = {"run": _public(run), "limits": limits}
     for cls in MESSAGES:
         key = f"runs/{run_id}/{cls.__name__}.json"
         if store.exists(key):
@@ -281,13 +287,16 @@ def _shared(run_id: str) -> dict:
     return run
 
 
+_EMAIL = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
+
+
 def _redact(data, run: dict):
-    """Replaces the bid team's sign-in emails with role names before anything is shown publicly."""
+    """Replaces sign-in emails with role names, and any other email with "bid team", before showing publicly."""
     text = json.dumps(data, default=str)
     for key, role in (("owner", "bid manager"), ("approved_by", "approver")):
         if run.get(key):
             text = text.replace(str(run[key]), role)
-    return json.loads(text)
+    return json.loads(_EMAIL.sub("bid team", text))
 
 
 @app.get("/public/runs")
