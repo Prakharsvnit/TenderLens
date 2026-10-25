@@ -151,6 +151,9 @@ export interface RunView {
   ClaimVerdicts?: { verdicts: ClaimVerdict[]; round: number }
   BidRecommendation?: { decision: BidDecision }
   approval?: { approver: string; accepted: boolean; final_decision: DecisionKind; reason: string; at: string }
+  audit?: AuditEvent[]
+  eval?: EvalReport
+  limits?: { run_token_budget: number; grounding_threshold: number }
 }
 
 export interface TraceEvent {
@@ -164,7 +167,29 @@ export interface TraceEvent {
   cost_usd: number
   latency_ms: number
   detail: string
+  args?: string
   at: string
+}
+
+export interface EvalReport {
+  run_id: string
+  metrics: Record<string, number>
+  targets: Record<string, number>
+  gold_size: number
+  decision: DecisionKind | null
+  expected_decision: DecisionKind | null
+  score_pct: number | null
+  missed_critical: string[]
+  missed: { gold: string; page: number; quote: string }[]
+  not_in_gold: { id: string; page: number; quote: string }[]
+  wrong_status: { gold: string; got: Status | null; expected: Status[] }[]
+}
+
+export interface AuditEvent {
+  at: string
+  actor: string
+  action: string
+  detail: Record<string, unknown>
 }
 
 export interface ApiConfig {
