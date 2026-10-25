@@ -30,7 +30,7 @@ Upload an RFP PDF and TenderLens returns:
 - The Verifier can send unsupported claims back to the Writer, at most twice.
 - Results and the per-agent trace land in DynamoDB, and the React app reads them from there.
 
-Full design: [Product requirements](docs/PRD.md) and [High-level design](docs/HLD.md).
+Full design: [Product requirements](docs/PRD.md), [High-level design](docs/HLD.md) and the [user journey](docs/user-journey.md).
 
 ## Agentic AI capabilities
 
