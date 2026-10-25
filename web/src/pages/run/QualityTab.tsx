@@ -1,6 +1,7 @@
 import { CheckCircle2, ClipboardCheck, Gauge, ShieldCheck, XCircle } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
 import { api } from '../../api'
+import { useToast } from '../../components/toast'
 import { Button, Card, Chip, DECISION_LABEL, Empty, cx, pct, usd } from '../../components/ui'
 import type { EvalReport, RunView, TraceEvent } from '../../types'
 
@@ -123,6 +124,7 @@ export function QualityTab({
   canEvaluate: boolean
   onEvaluated: () => void
 }) {
+  const toast = useToast()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const { run } = view
@@ -147,9 +149,11 @@ export function QualityTab({
     setError('')
     try {
       await api.evaluate(run.run_id)
+      toast('success', 'Eval complete. Scores updated.')
       onEvaluated()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not run the eval')
+      toast('error', err instanceof Error ? err.message : 'Could not run the eval')
     } finally {
       setBusy(false)
     }

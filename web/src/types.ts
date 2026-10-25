@@ -39,6 +39,7 @@ export interface Run {
   claims?: number
   unsupported_claims?: number
   rewrite_rounds?: number
+  assess_batches?: number
   decision?: DecisionKind
   final_decision?: DecisionKind
   score_pct?: number

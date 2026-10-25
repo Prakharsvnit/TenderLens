@@ -1,8 +1,18 @@
-import { ClipboardCheck, Gavel } from 'lucide-react'
 import { useState } from 'react'
+import { AGENT_BY_ID } from '../../agents'
 import { api } from '../../api'
-import { Button, Card, DECISION_LABEL, DecisionBadge, pct } from '../../components/ui'
+import { useToast } from '../../components/toast'
+import { Button, Card, DECISION_LABEL, DecisionBadge, cx, pct } from '../../components/ui'
 import type { DecisionKind, RunView } from '../../types'
+
+function Speaker({ agent }: { agent: 'rfp_analyst' | 'bid_strategist' }) {
+  const a = AGENT_BY_ID[agent]
+  return (
+    <span className={cx('flex h-8 w-8 flex-none items-center justify-center rounded-full text-sm font-semibold text-white', a.color)}>
+      {a.name[0]}
+    </span>
+  )
+}
 
 /** Checkpoint 1: the bid manager confirms (and optionally corrects) the extracted requirements. */
 export function ConfirmBanner({
@@ -16,6 +26,7 @@ export function ConfirmBanner({
   onDone: () => void
   onReview: () => void
 }) {
+  const toast = useToast()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const set = view.RequirementSet!
@@ -25,9 +36,11 @@ export function ConfirmBanner({
     setBusy(true)
     try {
       await api.confirm(view.run.run_id, Object.entries(edits).map(([id, e]) => ({ id, ...e })))
+      toast('success', 'Requirements confirmed. The Compliance Analyst is starting.')
       onDone()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not confirm')
+      toast('error', err instanceof Error ? err.message : 'Could not confirm')
     } finally {
       setBusy(false)
     }
@@ -37,14 +50,15 @@ export function ConfirmBanner({
     <Card className="border-amber-200 bg-amber-50/60 p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
-          <ClipboardCheck className="mt-0.5 h-5 w-5 flex-none text-amber-600" />
+          <Speaker agent="rfp_analyst" />
           <div className="text-sm">
-            <div className="font-semibold text-slate-900">Checkpoint 1: confirm the requirements</div>
-            <div className="mt-0.5 text-slate-600">
-              The RFP Analyst found {set.requirements.length} requirements, {critical} of them pass/fail.
-              {set.possible_misses.length > 0 && ` The shall/must scan flagged ${set.possible_misses.length} possible misses.`}{' '}
-              Correct any category or criticality, then confirm. The run continues on its own after 2 minutes.
+            <div className="font-semibold text-slate-900">RFP Analyst · your turn</div>
+            <div className="mt-0.5 text-slate-700">
+              I found {set.requirements.length} requirements, {critical} of them pass/fail.
+              {set.possible_misses.length > 0 && ` My scan flagged ${set.possible_misses.length} possible misses.`} Fix any
+              category or pass/fail flag, then confirm and I’ll hand them to the Compliance Analyst.
             </div>
+            <div className="mt-0.5 text-xs text-slate-500">Continues on its own after 2 minutes.</div>
             {Object.keys(edits).length > 0 && (
               <div className="mt-1 text-amber-800">{Object.keys(edits).length} correction(s) will be saved.</div>
             )}
@@ -66,6 +80,7 @@ export function ApproveBanner({ view, onDone, onReview }: { view: RunView; onDon
   const [override, setOverride] = useState(false)
   const [final, setFinal] = useState<DecisionKind>(decision.decision)
   const [reason, setReason] = useState('')
+  const toast = useToast()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
@@ -74,9 +89,11 @@ export function ApproveBanner({ view, onDone, onReview }: { view: RunView; onDon
     setError('')
     try {
       await api.approve(view.run.run_id, accepted ? { accepted } : { accepted, final_decision: final, reason })
+      toast('success', accepted ? 'Decision approved. Writing the exports.' : 'Override recorded. Writing the exports.')
       onDone()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not record the approval')
+      toast('error', err instanceof Error ? err.message : 'Could not record the approval')
     } finally {
       setBusy(false)
     }
@@ -86,15 +103,15 @@ export function ApproveBanner({ view, onDone, onReview }: { view: RunView; onDon
     <Card className="border-amber-200 bg-amber-50/60 p-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-start gap-3">
-          <Gavel className="mt-0.5 h-5 w-5 flex-none text-amber-600" />
+          <Speaker agent="bid_strategist" />
           <div className="text-sm">
             <div className="flex flex-wrap items-center gap-2 font-semibold text-slate-900">
-              Checkpoint 2: approve the recommendation <DecisionBadge decision={decision.decision} />
+              Bid Strategist · your turn <DecisionBadge decision={decision.decision} />
               <span className="font-normal text-slate-500 tabular">{pct(decision.score_pct)} of available points</span>
             </div>
-            <div className="mt-0.5 text-slate-600">
-              The decision was computed in code from the knock-out rules and the RFP's evaluation points. Accept it, or
-              override it with a reason for the audit trail.
+            <div className="mt-0.5 text-slate-700">
+              I scored this with the knock-out rules and the RFP’s own points, in code. Approve it, or override with a
+              reason for the audit log.
             </div>
             {override && (
               <div className="mt-3 flex flex-col gap-2 sm:flex-row">

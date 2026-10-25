@@ -3,7 +3,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api, publicApi, type RunReader } from '../api'
 import { EvidencePanel } from '../components/EvidencePanel'
-import { StepTracker } from '../components/StepTracker'
+import { useToast } from '../components/toast'
+import { AgentTeamBar } from '../components/AgentTeamBar'
 import { Button, Card, RunStatusChip, Spinner, Tabs } from '../components/ui'
 import type { Evidence, RunView, TraceEvent } from '../types'
 import { ArchitectureTab } from './run/ArchitectureTab'
@@ -24,6 +25,7 @@ const ACTIVE = new Set(['uploading', 'queued', 'running', 'awaiting_confirmation
 export function RunPage({ publicMode = false }: { publicMode?: boolean }) {
   const { runId = '' } = useParams()
   const reader: RunReader = publicMode ? publicApi : api
+  const toast = useToast()
   const [view, setView] = useState<RunView | null>(null)
   const [trace, setTrace] = useState<TraceEvent[]>([])
   const [tab, setTab] = useState<TabId>('overview')
@@ -67,7 +69,11 @@ export function RunPage({ publicMode = false }: { publicMode?: boolean }) {
   const claims = view.DraftMessage?.sections.reduce((n, s) => n + s.claims.length, 0)
 
   async function download(kind: 'matrix' | 'draft') {
-    window.open(await reader.exportUrl(runId, kind), '_blank')
+    try {
+      window.open(await reader.exportUrl(runId, kind), '_blank')
+    } catch (err) {
+      toast('error', err instanceof Error ? err.message : 'Download failed')
+    }
   }
 
   return (
@@ -99,9 +105,7 @@ export function RunPage({ publicMode = false }: { publicMode?: boolean }) {
         )}
       </div>
 
-      <Card className="p-5">
-        <StepTracker run={run} />
-      </Card>
+      <AgentTeamBar run={run} trace={trace} />
 
       {run.status === 'failed' && (
         <Card className="flex items-start gap-3 border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
