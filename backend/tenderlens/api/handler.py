@@ -17,6 +17,7 @@ from aws_lambda_powertools.event_handler.exceptions import (
 )
 
 from ..config import get_settings
+from ..evaluation import evaluate, gold_for
 from ..ontology.models import (
     Approval,
     AssessmentBatch,
@@ -165,18 +166,24 @@ def start_run(run_id: str):
     return {"run_id": run_id, "status": "queued"}
 
 
-@app.get("/runs/<run_id>")
-def get_run(run_id: str):
-    run = _run(run_id)
-    store = get_store()
-    view: dict = {"run": _public(run)}
+def _view(run: dict) -> dict:
+    """Everything the run page shows: the run record, the agents' messages, approval, audit and eval."""
+    run_id, store = run["run_id"], get_store()
+    view: dict = {"run": _public(run), "limits": {"run_token_budget": get_settings().run_token_budget}}
     for cls in MESSAGES:
         key = f"runs/{run_id}/{cls.__name__}.json"
         if store.exists(key):
             view[cls.__name__] = json.loads(store.get_bytes(key))
-    if store.exists(f"runs/{run_id}/approval.json"):
-        view["approval"] = store.get_json(f"runs/{run_id}/approval.json")
+    for name in ("approval", "audit", "eval"):
+        key = f"runs/{run_id}/{name}.json"
+        if store.exists(key):
+            view[name] = store.get_json(key)
     return view
+
+
+@app.get("/runs/<run_id>")
+def get_run(run_id: str):
+    return _view(_run(run_id))
 
 
 @app.get("/runs/<run_id>/trace")
@@ -234,13 +241,77 @@ def approve(run_id: str):
     return {"ok": True}
 
 
+@app.post("/runs/<run_id>/eval")
+def run_eval(run_id: str):
+    """Scores a finished run against the gold set for its RFP and saves the report with the run."""
+    run = _owned(run_id)
+    if run.get("status") != "complete":
+        raise BadRequestError("the run has to finish before it can be evaluated")
+    gold = gold_for(run)
+    if gold is None:
+        raise BadRequestError("there is no gold set for this RFP, so it can't be scored")
+    report = evaluate(run_id, gold)
+    get_store().put_json(f"runs/{run_id}/eval.json", report)
+    return report
+
+
 @app.get("/runs/<run_id>/exports/<kind>")
 def export(run_id: str, kind: str):
     _run(run_id)
+    return _export_url(run_id, kind)
+
+
+def _export_url(run_id: str, kind: str) -> dict:
     names = {"matrix": "matrix.xlsx", "draft": "draft.docx"}
     if kind not in names:
         raise NotFoundError("unknown export")
     return {"url": _url("get_object", f"runs/{run_id}/{names[kind]}")}
+
+
+# --- Public, read-only demo (no sign-in; API Gateway routes /public/* without the authorizer) ---------------
+
+
+def _shared(run_id: str) -> dict:
+    try:
+        run = get_store().get_run(run_id)
+    except (KeyError, FileNotFoundError) as exc:
+        raise NotFoundError(f"run {run_id} not found") from exc
+    if not run.get("shared"):
+        raise NotFoundError(f"run {run_id} not found")
+    return run
+
+
+def _redact(data, run: dict):
+    """Replaces the bid team's sign-in emails with role names before anything is shown publicly."""
+    text = json.dumps(data, default=str)
+    for key, role in (("owner", "bid manager"), ("approved_by", "approver")):
+        if run.get(key):
+            text = text.replace(str(run[key]), role)
+    return json.loads(text)
+
+
+@app.get("/public/runs")
+def public_runs():
+    runs = [r for r in get_store().list_runs() if r.get("shared") and not str(r.get("run_id", "")).startswith("_")]
+    return {"runs": [_redact(_public(r), r) for r in runs]}
+
+
+@app.get("/public/runs/<run_id>")
+def public_run(run_id: str):
+    run = _shared(run_id)
+    return _redact(_view(run), run)
+
+
+@app.get("/public/runs/<run_id>/trace")
+def public_trace(run_id: str):
+    run = _shared(run_id)
+    return _redact({"events": get_store().get_trace(run_id)}, run)
+
+
+@app.get("/public/runs/<run_id>/exports/<kind>")
+def public_export(run_id: str, kind: str):
+    _shared(run_id)
+    return _export_url(run_id, kind)
 
 
 @logger.inject_lambda_context(log_event=False)
