@@ -332,6 +332,47 @@ class TenderLensStack(Stack):
         # The public demo: read-only GETs of shared runs, no sign-in. The handler serves only shared runs here.
         http_api.add_routes(path="/public/{proxy+}", methods=[apigw.HttpMethod.GET], integration=api_integration)
 
+        # --- Security headers on every page: CSP allows only the kinds of hosts the app talks to ---------------
+        region = Aws.REGION
+        csp = "; ".join([
+            "default-src 'self'",
+            "script-src 'self'",
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+            "font-src https://fonts.gstatic.com",
+            "img-src 'self' data: https://i.ytimg.com",
+            # Host patterns, not the exact API and bucket names: those already depend on the CloudFront domain
+            # (CORS), so naming them here would make a dependency cycle.
+            f"connect-src 'self' https://*.execute-api.{region}.amazonaws.com https://cognito-idp.{region}.amazonaws.com "
+            f"https://*.s3.amazonaws.com https://*.s3.{region}.amazonaws.com",
+            "frame-src https://www.youtube-nocookie.com",
+            "frame-ancestors 'none'",
+            "base-uri 'self'",
+            "form-action 'self'",
+            "object-src 'none'",
+        ])
+        headers = cloudfront.ResponseHeadersPolicy(
+            self, "SecurityHeaders",
+            security_headers_behavior=cloudfront.ResponseSecurityHeadersBehavior(
+                content_security_policy=cloudfront.ResponseHeadersContentSecurityPolicy(
+                    content_security_policy=csp, override=True),
+                strict_transport_security=cloudfront.ResponseHeadersStrictTransportSecurity(
+                    access_control_max_age=Duration.days(730), include_subdomains=True, override=True),
+                content_type_options=cloudfront.ResponseHeadersContentTypeOptions(override=True),
+                frame_options=cloudfront.ResponseHeadersFrameOptions(
+                    frame_option=cloudfront.HeadersFrameOption.DENY, override=True),
+                referrer_policy=cloudfront.ResponseHeadersReferrerPolicy(
+                    referrer_policy=cloudfront.HeadersReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN, override=True),
+            ),
+            custom_headers_behavior=cloudfront.ResponseCustomHeadersBehavior(custom_headers=[
+                cloudfront.ResponseCustomHeader(
+                    header="Permissions-Policy", value="camera=(), microphone=(), geolocation=()", override=True),
+            ]),
+        )
+        # The distribution is created before the API, so the policy is attached afterwards.
+        distribution.node.default_child.add_property_override(
+            "DistributionConfig.DefaultCacheBehavior.ResponseHeadersPolicyId", headers.response_headers_policy_id
+        )
+
         web_dist = REPO / "web" / "dist"
         sources = [s3deploy.Source.json_data("config.json", {
             "apiUrl": http_api.api_endpoint,
@@ -340,7 +381,10 @@ class TenderLensStack(Stack):
             "userPoolClientId": client.user_pool_client_id,
         })]
         if web_dist.exists():
-            sources.insert(0, s3deploy.Source.asset(str(web_dist), exclude=["config.json"]))
+            sources.insert(0, s3deploy.Source.asset(str(web_dist), exclude=["config.json", "index.html"]))
+            # Link previews need absolute URLs, so the site's address goes into index.html at deploy time.
+            index_html = (web_dist / "index.html").read_text(encoding="utf-8")
+            sources.append(s3deploy.Source.data("index.html", index_html.replace("__WEB_ORIGIN__", web_origin)))
         s3deploy.BucketDeployment(
             self, "Site", sources=sources, destination_bucket=web_bucket,
             distribution=distribution, distribution_paths=["/*"],
